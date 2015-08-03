@@ -1,0 +1,11 @@
+package exceptions
+
+enum ResponseErrorCode {
+    VALIDATION_ERROR,
+    AREA_NOT_FOUND,
+    VARIABLE_NOT_FOUND,
+    DEVICE_NOT_FOUND,
+    GROUP_NOT_FOUND,
+    SIMULATION_NOT_FOUND,
+    DUPLICATES_FOUND
+}
