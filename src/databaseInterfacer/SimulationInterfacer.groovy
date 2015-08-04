@@ -94,9 +94,9 @@ class SimulationInterfacer extends ClassInterfacer {
     }
 
     protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
-        def ignoredResourceNames = data.ignoredResources
-        def areaNames = data.areas
-        def groupNames = data.groups
+        def ignoredResourceNames = data.ignoredResources.unique()
+        def areaNames = data.areas.unique()
+        def groupNames = data.groups.unique()
 
         for (ignoredResourceName in ignoredResourceNames) {
             if (String.isInstance(ignoredResourceName) && !ignoredResourceName.isEmpty()) {

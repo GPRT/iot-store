@@ -47,7 +47,7 @@ class GroupInterfacer extends ClassInterfacer {
     }
 
     protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
-        def deviceNames = data.devices
+        def deviceNames = data.devices.unique()
 
         for (deviceName in deviceNames) {
             if (String.isInstance(deviceName) && !deviceName.isEmpty()) {
