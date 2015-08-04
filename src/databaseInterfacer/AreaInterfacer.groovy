@@ -7,7 +7,7 @@ import exceptions.ResponseErrorException
 
 class AreaInterfacer extends ClassInterfacer {
     def AreaInterfacer(factory) {
-        super(factory, "Area", ["name", "domainData", "parentArea"])
+        super(factory, "Area", ["name", "domainData", "parentArea", "devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -56,6 +56,32 @@ class AreaInterfacer extends ClassInterfacer {
             }
             else {
                 vertexNotFoundByIndex(parentAreaName)
+            }
+        }
+
+        def resourcesNames = data.devices.unique()
+
+        for (resourceName in resourcesNames) {
+            if (String.isInstance(resourceName) && !resourceName.isEmpty()) {
+                OrientVertex device = getVerticesByIndex("name", resourceName, "Resource").getAt(0)
+                if (device) {
+                    def numAreas = device.countEdges(Direction.IN, "HasResource")
+
+                    if (numAreas > 0)
+                        throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                                404,
+                                "Device [" + resourceName + "] is already part of an area!",
+                                "Remove the device from the area in question")
+
+                    vertex.addEdge("HasResource", device)
+                } else {
+                    throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
+                            404,
+                            "Device [" + resourceName + "] was not found!",
+                            "The device does not exist")
+                }
+            } else {
+                invalidVertexProperties()
             }
         }
     }

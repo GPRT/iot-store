@@ -4,6 +4,6 @@ import databaseInterfacer.DeviceInterfacer
 
 class DeviceRequestProcessor extends RequestProcessor {
     DeviceRequestProcessor(factory) {
-        super(new DeviceInterfacer(factory), ["name", "domainData", "networkId", "parentArea"])
+        super(new DeviceInterfacer(factory), ["name", "domainData", "networkId"])
     }
 }

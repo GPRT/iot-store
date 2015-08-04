@@ -7,7 +7,7 @@ import exceptions.ResponseErrorException
 
 class DeviceInterfacer extends ClassInterfacer {
     def DeviceInterfacer(factory) {
-        super(factory, "Resource", ["name", "domainData", "networkId", "parentArea"])
+        super(factory, "Resource", ["name", "domainData", "networkId"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -49,20 +49,6 @@ class DeviceInterfacer extends ClassInterfacer {
     }
 
     protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
-        def parentAreaName = data.parentArea
-
-        if (parentAreaName && !parentAreaName.isEmpty()) {
-            OrientVertex parent = getVerticesByIndex("name", parentAreaName, "Area").getAt(0)
-            if (parent) {
-                parent.addEdge("HasResource", vertex)
-            }
-            else {
-                throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
-                        404,
-                        "Parent area [" + parentAreaName + "] was not found!",
-                        "The parent area does not exist")
-            }
-        }
     }
 
     protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
