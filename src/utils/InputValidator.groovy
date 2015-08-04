@@ -62,7 +62,55 @@ class InputValidator {
                 "Expanded must be a boolean")
     }
 
-    static List processListFields(String data, List allowedListFields) {
+    static Integer processPageParam(String data) {
+        if (!data)
+            return 0
+
+        Integer page = 0
+
+        try {
+            page = data.toInteger()
+        } catch (NumberFormatException) {
+            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                    400,
+                    "Page is not valid!",
+                    "Choose an integer greater or equal to 0")
+        }
+
+        if (page < 0)
+            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                    400,
+                    "Page is out of range!",
+                    "Choose a number greater or equal to 0")
+
+        return page
+    }
+
+    static Integer processPageLimitParam(String data) {
+        if (!data)
+            return 10
+
+        Integer pageLimit = 10
+
+        try {
+            pageLimit = data.toInteger()
+        } catch (NumberFormatException) {
+            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                    400,
+                    "Page limit is not valid!",
+                    "Choose an integer between 10 and 100")
+        }
+
+        if (pageLimit < 10 || pageLimit > 100)
+            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                    400,
+                    "Page limit is out of range!",
+                    "Choose a number between 10 and 100")
+
+        return pageLimit
+    }
+
+    static List processListFieldsParam(String data, List allowedListFields) {
         if (!data)
             return ["*"]
 

@@ -18,23 +18,43 @@ class RequestProcessor {
         res.type("application/json");
 
         Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = ["fields", "filter", "sort", "expanded"]
+        Set<String> allowedQueryParams = ["fields", "filter", "sort", "expanded", "page", "pageLimit"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         def fieldsParam = req.queryParams("fields")
         def expandedParam = req.queryParams("expanded")
         def filterFieldsParam = req.queryParams("filter")
         def sortFieldsParam = req.queryParams("sort")
+        def pageParam = req.queryParams("page")
+        def pageLimitParam = req.queryParams("pageLimit")
 
-        def listFields = InputValidator.processListFields(fieldsParam, this.fields)
+        def listFields = InputValidator.processListFieldsParam(fieldsParam, this.fields)
         def isExpanded = InputValidator.processExpandedParam(expandedParam)
         def filterFields = InputValidator.processFilterParam(filterFieldsParam)
         def sortFields = InputValidator.processSortParam(sortFieldsParam)
+        def pageField = InputValidator.processPageParam(pageParam)
+        def pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
         if (isExpanded)
-            return this.databaseInterfacer.getExpandedVertices(listFields, filterFields, sortFields)
+            return this.databaseInterfacer.getExpandedVertices(listFields,filterFields, sortFields, pageField, pageLimitField)
         else
-            return this.databaseInterfacer.getVertices(listFields, filterFields, sortFields)
+            return this.databaseInterfacer.getVertices(listFields, filterFields, sortFields, pageField, pageLimitField)
+    }
+
+    final LinkedHashMap setById(Request req, Response res) {
+        res.type ( "application/json" );
+        res.status(201);
+
+        Set<String> queryFields = req.queryParams()
+        Set<String> allowedQueryParams = []
+        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        Long id = InputValidator.processId(req.params(":id"));
+
+        String json = req.body()
+        json = (!json.isEmpty()) ? json : "{}"
+
+        return this.databaseInterfacer.setVertexById(id, InputValidator.processJson(json))
     }
 
     final LinkedHashMap getById(Request req, Response res) {

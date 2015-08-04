@@ -57,7 +57,10 @@ class DeviceInterfacer extends ClassInterfacer {
                 parent.addEdge("HasResource", vertex)
             }
             else {
-                vertexNotFoundByIndex(parentAreaName)
+                throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
+                        404,
+                        "Parent area [" + parentAreaName + "] was not found!",
+                        "The parent area does not exist")
             }
         }
     }

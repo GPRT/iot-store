@@ -66,8 +66,6 @@ class AreaInterfacer extends ClassInterfacer {
         if (parentEdge)
             parentName = parentEdge.getVertex(Direction.OUT).getProperty("name")
 
-        //def devicesCount = vertex.countEdges(Direction.OUT, "HasResource")
-
         def deviceEdges = vertex.getEdges(Direction.OUT, "HasResource")
         def deviceNames = []
         if (deviceEdges)
