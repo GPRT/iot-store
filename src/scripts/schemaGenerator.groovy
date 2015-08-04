@@ -50,14 +50,6 @@ try {
     OClass measurementsType = schema.createClass("Measurements")
     measurementsType.createProperty("year", OType.LINKMAP, yearType)
 
-    OrientVertexType simulationType = graph.createVertexType("Simulation")
-    simulationType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
-    simulationType.createProperty("domainData", OType.EMBEDDEDMAP)
-    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Simulation"))
-
-    OrientVertexType fakeResourceType = graph.createVertexType("FakeResource")
-    fakeResourceType.createProperty("domainData", OType.EMBEDDEDMAP)
-
     OrientVertexType areaType = graph.createVertexType("Area")
     areaType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
     areaType.createProperty("domainData", OType.EMBEDDEDMAP)
@@ -67,6 +59,16 @@ try {
     groupType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
     groupType.createProperty("domainData", OType.EMBEDDEDMAP)
     graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Group"))
+
+    OClass fakeResourceType = schema.createClass("FakeResource")
+    fakeResourceType.createProperty("domainData", OType.EMBEDDEDMAP)
+
+    OrientVertexType simulationType = graph.createVertexType("Simulation")
+    simulationType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
+    simulationType.createProperty("domainData", OType.EMBEDDEDMAP)
+    simulationType.createProperty("fakeAreaResources", OType.EMBEDDEDSET)
+    simulationType.createProperty("fakeGroupResources", OType.EMBEDDEDSET)
+    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Simulation"))
 
     OrientVertexType resourceType = graph.createVertexType("Resource")
     resourceType.createProperty("networkId", OType.STRING).setMandatory(true).setNotNull(true)
@@ -102,18 +104,6 @@ try {
     simulationExcludesDeviceType.createProperty("in", OType.LINK, resourceType)
     simulationExcludesDeviceType.createProperty("out", OType.LINK, simulationType)
 
-    OrientEdgeType simulationIncludesDeviceType = graph.createEdgeType("IncludesResource")
-    simulationIncludesDeviceType.createProperty("in", OType.LINK, fakeResourceType)
-    simulationIncludesDeviceType.createProperty("out", OType.LINK, simulationType)
-
-    OrientEdgeType deviceIncludedInType = graph.createEdgeType("IsIn")
-    deviceIncludedInType.createProperty("in", OType.LINK, fakeResourceType)
-    deviceIncludedInType.createProperty("out", OType.LINK, simulationType)
-
-    OrientEdgeType deviceGroupedInType = graph.createEdgeType("GroupedIn")
-    deviceGroupedInType.createProperty("in", OType.LINK, fakeResourceType)
-    deviceGroupedInType.createProperty("out", OType.LINK, simulationType)
-
     OrientEdgeType canMonitorType = graph.createEdgeType("CanMonitor")
     canMonitorType.createProperty("in", OType.LINK, resourceType)
     canMonitorType.createProperty("out", OType.LINK, measurementVariableType)
@@ -122,7 +112,6 @@ try {
     canActuateType.createProperty("in", OType.LINK, resourceType)
     canActuateType.createProperty("out", OType.LINK, measurementVariableType)
 
-    graph.addVertex("class:Area","name","UFPE")
     graph.commit()
 } finally {
     graph.shutdown();
