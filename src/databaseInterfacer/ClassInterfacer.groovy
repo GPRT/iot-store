@@ -11,11 +11,11 @@ import exceptions.ExceptionThrower
 import utils.OrientTransformer
 
 abstract class ClassInterfacer implements ExceptionThrower {
-    def OrientGraphFactory factory
-    def OrientTransformer orientTransformer = new OrientTransformer()
-    def defaultClusterId = -1
-    def className = ""
-    def fields = []
+    OrientGraphFactory factory
+    OrientTransformer orientTransformer = new OrientTransformer()
+    Integer defaultClusterId = -1
+    String className = ""
+    Set fields = []
 
     def ClassInterfacer(factory, className, fields) {
         this.factory = factory
@@ -94,10 +94,8 @@ abstract class ClassInterfacer implements ExceptionThrower {
     }
 
     protected final LinkedHashMap createVertex(HashMap data) {
-        this.fields.each {
-            if (!(it in data.keySet()))
-                invalidVertexProperties()
-        }
+        if (!(this.fields == data.keySet()))
+            invalidVertexProperties()
 
         if (data.isEmpty())
             invalidVertexProperties()
@@ -182,10 +180,8 @@ abstract class ClassInterfacer implements ExceptionThrower {
     }
 
     protected final LinkedHashMap setVertexById(Long id, HashMap data, String className=this.className) {
-        this.fields.each {
-            if (!(it in data))
-                invalidVertexProperties()
-        }
+        if (!(this.fields == data.keySet()))
+            invalidVertexProperties()
 
         if (data.isEmpty())
             invalidVertexProperties()
