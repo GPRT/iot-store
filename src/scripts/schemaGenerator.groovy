@@ -31,9 +31,13 @@ try {
     sampleType.createProperty("measurementVariable", OType.EMBEDDED, measurementVariableType)
     sampleType.createProperty("value", OType.DOUBLE)
 
+    OClass minuteType = schema.createClass("Minute")
+    minuteType.createProperty("log", OType.EMBEDDEDSET, sampleType)
+    minuteType.createProperty("sample", OType.EMBEDDEDLIST, sampleType)
+
     OClass hourType = schema.createClass("Hour")
-    hourType.createProperty("log", OType.EMBEDDEDSET, sampleType)
-    hourType.createProperty("samples", OType.LINKLIST, sampleType)
+    hourType.createProperty("log", OType.EMBEDDEDSET, minuteType)
+    hourType.createProperty("minute", OType.LINKMAP, minuteType)
 
     OClass dayType = schema.createClass("Day")
     dayType.createProperty("log", OType.EMBEDDEDSET, sampleType)
@@ -80,6 +84,10 @@ try {
     areaHasAreaType.createProperty("in", OType.LINK, areaType)
     areaHasAreaType.createProperty("out", OType.LINK, areaType)
 
+    OrientEdgeType deviceHasMeasurementsType = graph.createEdgeType("HasMeasurements")
+    deviceHasMeasurementsType.createProperty("in", OType.LINK, measurementsType)
+    deviceHasMeasurementsType.createProperty("out", OType.LINK, resourceType)
+
     OrientEdgeType areaHasDeviceType = graph.createEdgeType("HasResource")
     areaHasDeviceType.createProperty("in", OType.LINK, resourceType)
     areaHasDeviceType.createProperty("out", OType.LINK, areaType)
@@ -114,5 +122,7 @@ try {
 
     graph.commit()
 } finally {
-    graph.shutdown();
+    graph.commit();
+//    graph.shutdown();
 }
+
