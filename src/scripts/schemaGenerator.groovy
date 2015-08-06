@@ -28,27 +28,31 @@ try {
 
     OClass sampleType = schema.createClass("Sample")
     sampleType.createProperty("timestamp", OType.DATETIME)
-    sampleType.createProperty("measurementVariable", OType.EMBEDDED, measurementVariableType)
+    sampleType.createProperty("measurementVariable", OType.LINK, measurementVariableType)
     sampleType.createProperty("value", OType.DOUBLE)
 
+    OClass logType = schema.createClass("Log")
+    logType.createProperty("sum", OType.EMBEDDEDSET, sampleType)
+    logType.createProperty("mean", OType.EMBEDDEDSET, sampleType)
+
     OClass minuteType = schema.createClass("Minute")
-    minuteType.createProperty("log", OType.EMBEDDEDSET, sampleType)
+    minuteType.createProperty("log", OType.LINK, logType)
     minuteType.createProperty("sample", OType.EMBEDDEDLIST, sampleType)
 
     OClass hourType = schema.createClass("Hour")
-    hourType.createProperty("log", OType.EMBEDDEDSET, minuteType)
+    hourType.createProperty("log", OType.LINK, logType)
     hourType.createProperty("minute", OType.LINKMAP, minuteType)
 
     OClass dayType = schema.createClass("Day")
-    dayType.createProperty("log", OType.EMBEDDEDSET, sampleType)
+    dayType.createProperty("log", OType.LINK, logType)
     dayType.createProperty("hour", OType.LINKMAP, hourType)
 
     OClass monthType = schema.createClass("Month")
-    monthType.createProperty("log", OType.EMBEDDEDSET, sampleType)
+    monthType.createProperty("log", OType.LINK, logType)
     monthType.createProperty("day", OType.LINKMAP, dayType)
 
     OClass yearType = schema.createClass("Year")
-    yearType.createProperty("log", OType.EMBEDDEDSET, sampleType)
+    yearType.createProperty("log", OType.LINK, logType)
     yearType.createProperty("month", OType.LINKMAP, monthType)
 
     OClass measurementsType = schema.createClass("Measurements")
