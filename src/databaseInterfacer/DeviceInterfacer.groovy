@@ -4,6 +4,7 @@ import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
+import com.orientechnologies.orient.core.record.impl.ODocument
 
 class DeviceInterfacer extends ClassInterfacer {
     def DeviceInterfacer(factory) {
@@ -81,6 +82,13 @@ class DeviceInterfacer extends ClassInterfacer {
                 invalidVertexProperties()
             }
         }
+
+        def measurements = new ODocument("Measurements")
+
+        measurements.field('year',new LinkedHashMap())
+        measurements.save()
+
+        vertex.setProperty('measurements',measurements.getIdentity())
     }
 
     protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
