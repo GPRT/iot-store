@@ -7,7 +7,7 @@ import exceptions.ResponseErrorException
 
 class DeviceInterfacer extends ClassInterfacer {
     def DeviceInterfacer(factory) {
-        super(factory, "Resource", ["name", "domainData", "networkId"])
+        super(factory, "Resource", ["name", "domainData", "networkId", "areaName", "groupNames"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -39,24 +39,63 @@ class DeviceInterfacer extends ClassInterfacer {
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
-        def areaName = data.name
+        def deviceName = data.name
         def networkId = data.networkId
         def domainData =  data.domainData
 
-        return ["name": areaName,
+        return ["name": deviceName,
                 "networkId": networkId,
                 "domainData": domainData]
     }
 
     protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+        def areaName = data.areaName
+        def groupNames = data.groupNames.unique()
+
+        if (String.isInstance(areaName) && !areaName.isEmpty()) {
+            OrientVertex area = getVerticesByIndex("name", areaName, "Area").getAt(0)
+            if (area) {
+                area.addEdge("HasResource", vertex)
+            } else {
+                throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
+                        404,
+                        "Area [" + areaName + "] was not found!",
+                        "The area does not exist")
+            }
+        } else {
+            invalidVertexProperties()
+        }
+
+        for (groupName in groupNames) {
+            if (String.isInstance(groupName) && !groupName.isEmpty()) {
+                OrientVertex group = getVerticesByIndex("name", groupName, "Group").getAt(0)
+                if (group) {
+                    group.addEdge("GroupsResource", vertex)
+                } else {
+                    throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
+                            404,
+                            "Group [" + groupName + "] was not found!",
+                            "The group does not exist")
+                }
+            } else {
+                invalidVertexProperties()
+            }
+        }
     }
 
     protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
-        def parentEdge = vertex.getEdges(Direction.IN, "HasResource").getAt(0)
+        def areaEdge = vertex.getEdges(Direction.IN, "HasResource").getAt(0)
         def parentName = ""
-        if (parentEdge)
-            parentName = parentEdge.getVertex(Direction.OUT).getProperty("name")
+        if (areaEdge)
+            parentName = areaEdge.getVertex(Direction.OUT).getProperty("name")
 
-        return ["parentName": parentName]
+        def groupsEdge = vertex.getEdges(Direction.IN, "GroupsResource")
+        def groupNames = []
+        for (groupEdge in groupsEdge) {
+            def groupName = groupEdge.getVertex(Direction.OUT).getProperty("name")
+            groupNames.add(groupName)
+        }
+
+        return ["areaName": parentName, "groupNames": groupNames]
     }
 }
