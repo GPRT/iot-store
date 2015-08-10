@@ -5,7 +5,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
-class AreaInterfacer extends ClassInterfacer {
+class AreaInterfacer extends VertexInterfacer {
     def AreaInterfacer(factory) {
         super(factory, "Area", ["name", "domainData", "parentArea", "devices"])
     }

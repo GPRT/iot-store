@@ -5,7 +5,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
-class SimulationInterfacer extends ClassInterfacer {
+class SimulationInterfacer extends VertexInterfacer {
     def SimulationInterfacer(factory) {
         super(factory, "Simulation",
                 ["name", "domainData", "areas", "groups", "ignoredResources", "fakeAreaResources", "fakeGroupResources"])

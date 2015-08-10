@@ -5,7 +5,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
-class GroupInterfacer extends ClassInterfacer {
+class GroupInterfacer extends VertexInterfacer {
     def GroupInterfacer(factory) {
         super(factory, "Group", ["name", "domainData", "devices"])
     }
