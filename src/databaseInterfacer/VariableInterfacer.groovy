@@ -4,7 +4,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
-class VariableInterfacer extends ClassInterfacer {
+class VariableInterfacer extends VertexInterfacer {
     def VariableInterfacer(factory) {
         super(factory, "MeasurementVariable", ["name", "domainData", "unit"])
     }

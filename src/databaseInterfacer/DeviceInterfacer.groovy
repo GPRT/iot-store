@@ -6,7 +6,7 @@ import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
 
-class DeviceInterfacer extends ClassInterfacer {
+class DeviceInterfacer extends VertexInterfacer {
     def DeviceInterfacer(factory) {
         super(factory, "Resource", ["name", "domainData", "networkId", "areaName", "groupNames"])
     }

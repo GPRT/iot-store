@@ -37,7 +37,7 @@ try {
 
     OClass minuteType = schema.createClass("Minute")
     minuteType.createProperty("log", OType.LINK, logType)
-    minuteType.createProperty("sample", OType.EMBEDDEDLIST, sampleType)
+    minuteType.createProperty("sample", OType.EMBEDDEDLIST)
 
     OClass hourType = schema.createClass("Hour")
     hourType.createProperty("log", OType.LINK, logType)
@@ -126,7 +126,6 @@ try {
 
     graph.commit()
 } finally {
-    graph.commit();
-//    graph.shutdown();
+    graph.shutdown();
 }
 

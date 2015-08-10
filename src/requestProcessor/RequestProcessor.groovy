@@ -88,7 +88,7 @@ class RequestProcessor {
         return this.databaseInterfacer.deleteVertex(id);
     }
 
-    final LinkedHashMap create(Request req, Response res) {
+    final LinkedHashMap createVertex(Request req, Response res) {
         res.type ( "application/json" );
         res.status(201);
 
@@ -100,5 +100,19 @@ class RequestProcessor {
         json = (!json.isEmpty()) ? json : "{}"
 
         return this.databaseInterfacer.createVertex(InputValidator.processJson(json))
+    }
+
+    final LinkedHashMap createDocument(Request req, Response res) {
+        res.type ( "application/json" );
+        res.status(201);
+
+        Set<String> queryFields = req.queryParams()
+        Set<String> allowedQueryParams = []
+        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        String json = req.body()
+        json = (!json.isEmpty()) ? json : "{}"
+
+        return this.databaseInterfacer.createDocument(InputValidator.processJson(json))
     }
 }
