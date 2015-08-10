@@ -1,6 +1,6 @@
 package exceptions
 
-interface ExceptionThrower {
+interface VertexExceptionThrower {
     abstract void duplicatedVertex()
     abstract void invalidVertexProperties()
     abstract void vertexNotFoundById(Long id)
