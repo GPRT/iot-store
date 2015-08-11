@@ -17,7 +17,7 @@ abstract class ClassInterfacer {
         this.defaultClusterId = this.getClusterId(className)
     }
 
-    private final Number getClusterId(String className) {
+    protected final Number getClusterId(String className) {
         def db = this.factory.getDatabase()
         try {
             return db.getClusterIdByName(className)
@@ -26,7 +26,7 @@ abstract class ClassInterfacer {
         }
     }
 
-    private final String generateQuery(fieldNames, filterFields=[], sortFields=[], pageField=0, pageLimitField=10,
+    protected final String generateQuery(fieldNames, filterFields=[], sortFields=[], pageField=0, pageLimitField=10,
                                        String className=this.className) {
         def osql = "select " + fieldNames.join(", ") + " from " + className
 
