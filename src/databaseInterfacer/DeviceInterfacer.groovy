@@ -27,14 +27,14 @@ class DeviceInterfacer extends VertexInterfacer {
 
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
-                404,
+                400,
                 "Duplicated device found!",
                 "The provided device already exist")
     }
 
     void invalidVertexProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid device properties!",
                 "The valid ones are " + this.fields)
     }

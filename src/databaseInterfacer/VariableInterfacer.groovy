@@ -25,14 +25,14 @@ class VariableInterfacer extends VertexInterfacer {
 
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
-                404,
+                400,
                 "Duplicated variable found!",
                 "The provided variable already exist")
     }
 
     void invalidVertexProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid variable properties!",
                 "The valid ones are " + this.fields)
     }

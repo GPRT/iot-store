@@ -21,7 +21,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
     void invalidDocumentProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid measurement properties!",
                 "The valid ones are " + this.fields)
 
@@ -117,7 +117,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
         catch(IllegalArgumentException err2){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
-                    404,
+                    400,
                     "Timestamp ["+timestamp+"] is invalid!",
                     'Possible format "MM/DD/YYYY hh:mm:ss"')
         }
@@ -141,7 +141,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
         catch(NoSuchElementException e){
             throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                     404,
-                    "Device called [" + networkId + "] was not found!",
+                    "Device [" + networkId + "] was not found!",
                     "The device does not exist")
         }
         finally {

@@ -26,14 +26,14 @@ class AreaInterfacer extends VertexInterfacer {
 
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
-                404,
+                400,
                 "Duplicated area found!",
                 "The provided area already exist")
     }
 
     void invalidVertexProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid area properties!",
                 "The valid ones are " + this.fields)
     }
@@ -69,7 +69,7 @@ class AreaInterfacer extends VertexInterfacer {
 
                     if (numAreas > 0)
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                                404,
+                                400,
                                 "Device [" + resourceName + "] is already part of an area!",
                                 "Remove the device from the area in question")
 
