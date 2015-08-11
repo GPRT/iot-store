@@ -27,14 +27,14 @@ class SimulationInterfacer extends VertexInterfacer {
 
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
-                404,
+                400,
                 "Duplicated simulation found!",
                 "The provided simulation already exist")
     }
 
     void invalidVertexProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid simulation properties!",
                 "The valid ones are " + this.fields)
     }

@@ -26,14 +26,14 @@ class GroupInterfacer extends VertexInterfacer {
 
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
-                404,
+                400,
                 "Duplicated group found!",
                 "The provided group already exist")
     }
 
     void invalidVertexProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                404,
+                400,
                 "Invalid group properties!",
                 "The valid ones are " + this.fields)
     }
