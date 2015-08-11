@@ -57,8 +57,10 @@ public class IotStore {
         post("/measurements", "application/json", measurementRequestProcessor::createDocument, jsonTransformer);
 
         exception(ResponseErrorException.class, (e, req, res) -> {
+            ResponseErrorException error = (ResponseErrorException)e;
             res.type("application/json");
-            res.body(e.toString());
+            res.status(error.statusCode());
+            res.body(error.toString());
         });
     }
 }
