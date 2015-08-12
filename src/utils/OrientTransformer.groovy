@@ -16,13 +16,13 @@ class OrientTransformer {
     }
 
     public Map fromORecord(ORecord record) {
-        def result = ['id':record.identity.clusterPosition]
+        def result = [:]
         record.each { fillMap(it, result) }
         return result
     }
 
     public Map fromOVertex(OrientVertex vertex) {
-        def result = ['id':vertex.identity.clusterPosition]
+        def result = [:]
         vertex.record.each { fillMap(it, result) }
         return result
     }
