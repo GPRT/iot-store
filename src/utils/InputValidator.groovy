@@ -33,7 +33,7 @@ class InputValidator {
 
             if (id < 0) {
                 throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                        404,
+                        400,
                         "[" + data + "] is not a valid ID!",
                         "ID must be an unsigned integer")
             }
@@ -41,7 +41,7 @@ class InputValidator {
             return id
         } catch(NumberFormatException e) {
             throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                    404,
+                    400,
                     "[" + data + "] is not a valid ID!",
                     "ID must be an unsigned integer")
         }
@@ -196,7 +196,7 @@ class InputValidator {
             return new JsonSlurper().parseText(data)
         } catch (JsonException e) {
             throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                    404,
+                    400,
                     "[" + data + "] is not a valid json!",
                     "The provided json cannot be parsed")
         }
