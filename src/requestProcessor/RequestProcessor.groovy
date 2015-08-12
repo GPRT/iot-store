@@ -6,11 +6,9 @@ import spark.Response
 import utils.InputValidator
 
 class RequestProcessor {
-    final List fields
     final ClassInterfacer databaseInterfacer
 
-    RequestProcessor(ClassInterfacer databaseInterfacer, List fields) {
-        this.fields = fields
+    RequestProcessor(ClassInterfacer databaseInterfacer) {
         this.databaseInterfacer = databaseInterfacer
     }
 
@@ -28,17 +26,22 @@ class RequestProcessor {
         def pageParam = req.queryParams("page")
         def pageLimitParam = req.queryParams("pageLimit")
 
-        def listFields = InputValidator.processListFieldsParam(fieldsParam, this.fields)
-        def isExpanded = InputValidator.processExpandedParam(expandedParam)
-        def filterFields = InputValidator.processFilterParam(filterFieldsParam)
-        def sortFields = InputValidator.processSortParam(sortFieldsParam)
-        def pageField = InputValidator.processPageParam(pageParam)
-        def pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
+        boolean isExpanded = InputValidator.processExpandedParam(expandedParam)
+        Set filterFields = InputValidator.processFilterParam(filterFieldsParam)
+        Set sortFields = InputValidator.processSortParam(sortFieldsParam)
+        int pageField = InputValidator.processPageParam(pageParam)
+        int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
-        if (isExpanded)
-            return this.databaseInterfacer.getExpandedVertices(listFields,filterFields, sortFields, pageField, pageLimitField)
-        else
-            return this.databaseInterfacer.getVertices(listFields, filterFields, sortFields, pageField, pageLimitField)
+        Set allowedFieldNames = null
+        Set listFields = null
+
+        if (isExpanded) {
+            listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getExpandedNames())
+        } else {
+            listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
+        }
+
+        return this.databaseInterfacer.getVertices(listFields, filterFields, sortFields, pageField, pageLimitField)
     }
 
     final LinkedHashMap setById(Request req, Response res) {
@@ -49,7 +52,7 @@ class RequestProcessor {
         Set<String> allowedQueryParams = []
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        Long id = InputValidator.processId(req.params(":id"));
+        Long id = InputValidator.processId(req.params(":id"))
 
         String json = req.body()
         json = (!json.isEmpty()) ? json : "{}"
@@ -64,16 +67,21 @@ class RequestProcessor {
         Set<String> allowedQueryParams = ["expanded"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        Long id = InputValidator.processId(req.params(":id"));
+        Long id = InputValidator.processId(req.params(":id"))
 
         def expandedParam = req.queryParams("expanded")
 
         def isExpanded = InputValidator.processExpandedParam(expandedParam)
 
-        if (isExpanded)
-            return this.databaseInterfacer.getExpandedVertexById(id)
-        else
-            return this.databaseInterfacer.getVertexById(id)
+        Set listFields = null
+
+        if (isExpanded) {
+            listFields = this.databaseInterfacer.getExpandedNames()
+        } else {
+            listFields = this.databaseInterfacer.getFieldNames()
+        }
+
+        return this.databaseInterfacer.getVertexById(id, listFields)
     }
 
     final LinkedHashMap delete(Request req, Response res) {
@@ -84,7 +92,7 @@ class RequestProcessor {
         Set<String> allowedQueryParams = []
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        Long id = InputValidator.processId(req.params(":id"));
+        Long id = InputValidator.processId(req.params(":id"))
         return this.databaseInterfacer.deleteVertex(id);
     }
 
