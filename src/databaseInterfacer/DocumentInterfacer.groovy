@@ -6,8 +6,8 @@ import exceptions.DocumentExceptionThrower
 
 abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExceptionThrower {
 
-    def DocumentInterfacer(Object factory, Object className, Object fields) {
-        super(factory, className, fields)
+    def DocumentInterfacer(Object factory, Object className, Object fields, links) {
+        super(factory, className, fields, links)
     }
 
     // Helpers

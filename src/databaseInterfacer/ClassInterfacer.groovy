@@ -8,11 +8,13 @@ abstract class ClassInterfacer {
     OrientTransformer orientTransformer = new OrientTransformer()
     Integer defaultClusterId = -1
     String className = ""
-    Set fields = []
+    Map fields = [:]
+    Map links = [:]
 
-    def ClassInterfacer(factory, className, fields) {
+    def ClassInterfacer(factory, className, fields, links) {
         this.factory = factory
         this.fields = fields
+        this.links = links
         this.className = className
         this.defaultClusterId = this.getClusterId(className)
     }
@@ -26,9 +28,27 @@ abstract class ClassInterfacer {
         }
     }
 
-    protected final String generateQuery(fieldNames, filterFields=[], sortFields=[], pageField=0, pageLimitField=10,
-                                       String className=this.className) {
-        def osql = "select " + fieldNames.join(", ") + " from " + className
+    public final Set getFieldNames() {
+        return fields.keySet()
+    }
+
+    public final Set getExpandedNames() {
+        return links.keySet() + fields.keySet()
+    }
+
+    protected final String generateQuery(fieldNames=this.fields, Set filterFields=[], Set sortFields=[],
+                                         int pageField=0, int pageLimitField=10,
+                                         String className=this.className) {
+        def osql = "select from (select @rid as id,"
+
+        osql += fieldNames.collect {
+            if (it in this.fields)
+                return this.fields[it]
+            else
+                return this.links[it]
+        }.join(", ")
+
+        osql += " from " + className + ")"
 
         if (!filterFields.isEmpty())
             osql += " where"
