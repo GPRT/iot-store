@@ -110,9 +110,9 @@ class InputValidator {
         return pageLimit
     }
 
-    static List processListFieldsParam(String data, List allowedListFields) {
+    static Set processListFieldsParam(String data, Set allowedListFields) {
         if (!data)
-            return ["*"]
+            return allowedListFields
 
         String[] listFields = data.split(",")
         def results = []

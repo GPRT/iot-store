@@ -1,29 +1,26 @@
 package databaseInterfacer
 
-import com.orientechnologies.orient.core.db.record.OIdentifiable
-import com.orientechnologies.orient.core.db.record.OTrackedList
-import com.orientechnologies.orient.core.metadata.schema.OType
-import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
-import com.orientechnologies.orient.core.sql.OCommandSQL
 import com.orientechnologies.orient.core.record.impl.ODocument
-import org.codehaus.groovy.runtime.ArrayUtil
-
-import java.util.Date
 
 class MeasurementInterfacer extends DocumentInterfacer {
 
     def MeasurementInterfacer(factory) {
-        super(factory, "Sample", ["networkId","timestamp","measurementVariable","value"])
+        super(factory, "Sample",
+                ["networkId": "networkId",
+                 "timestamp": "timestamp",
+                 "measurementVariable": "measurementVariable",
+                 "value": "value"],
+                [:])
     }
 
     void invalidDocumentProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid measurement properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
 
     }
 

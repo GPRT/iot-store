@@ -7,7 +7,11 @@ import exceptions.ResponseErrorException
 
 class AreaInterfacer extends VertexInterfacer {
     def AreaInterfacer(factory) {
-        super(factory, "Area", ["name", "domainData", "parentArea", "devices"])
+        super(factory, "Area",
+                ["name": "name",
+                 "domainData": "domainData"],
+                ["parentArea": "in(\"HasArea\").name[0] as parentArea",
+                 "devices": "out(\"HasResource\").name as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -35,7 +39,7 @@ class AreaInterfacer extends VertexInterfacer {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid area properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
@@ -84,22 +88,5 @@ class AreaInterfacer extends VertexInterfacer {
                 invalidVertexProperties()
             }
         }
-    }
-
-    protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
-        def parentEdge = vertex.getEdges(Direction.IN, "HasArea").getAt(0)
-        def parentName = ""
-        if (parentEdge)
-            parentName = parentEdge.getVertex(Direction.OUT).getProperty("name")
-
-        def deviceEdges = vertex.getEdges(Direction.OUT, "HasResource")
-        def deviceNames = []
-        if (deviceEdges)
-            deviceEdges.each {
-                def deviceName = it.getVertex(Direction.IN).getProperty("name")
-                deviceNames.add(deviceName)
-            }
-
-        return ["parentName": parentName, "devices": deviceNames]
     }
 }

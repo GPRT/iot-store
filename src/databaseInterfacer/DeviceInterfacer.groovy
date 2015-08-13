@@ -1,6 +1,5 @@
 package databaseInterfacer
 
-import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
@@ -8,7 +7,12 @@ import com.orientechnologies.orient.core.record.impl.ODocument
 
 class DeviceInterfacer extends VertexInterfacer {
     def DeviceInterfacer(factory) {
-        super(factory, "Resource", ["name", "domainData", "networkId", "areaName", "groupNames"])
+        super(factory, "Resource",
+                ["name": "name",
+                 "domainData": "domainData",
+                 "networkId": "networkId"],
+                ["areaName": "ifnull(in(\"HasResource\").name[0], \"\") as areaName",
+                 "groupNames": "in(\"GroupsResource\").name as groupNames"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -36,7 +40,7 @@ class DeviceInterfacer extends VertexInterfacer {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid device properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
@@ -88,22 +92,6 @@ class DeviceInterfacer extends VertexInterfacer {
         measurements.field('year',new LinkedHashMap())
         measurements.save()
 
-        vertex.setProperty('measurements',measurements.getIdentity())
-    }
-
-    protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
-        def areaEdge = vertex.getEdges(Direction.IN, "HasResource").getAt(0)
-        def parentName = ""
-        if (areaEdge)
-            parentName = areaEdge.getVertex(Direction.OUT).getProperty("name")
-
-        def groupsEdge = vertex.getEdges(Direction.IN, "GroupsResource")
-        def groupNames = []
-        for (groupEdge in groupsEdge) {
-            def groupName = groupEdge.getVertex(Direction.OUT).getProperty("name")
-            groupNames.add(groupName)
-        }
-
-        return ["areaName": parentName, "groupNames": groupNames]
+        vertex.setProperty('measurements', measurements.getIdentity())
     }
 }

@@ -1,13 +1,15 @@
 package databaseInterfacer
 
-import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 class GroupInterfacer extends VertexInterfacer {
     def GroupInterfacer(factory) {
-        super(factory, "Group", ["name", "domainData", "devices"])
+        super(factory, "Group",
+                ["name": "name",
+                 "domainData": "domainData"],
+                ["devices": "out(\"GroupsResource\").name as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -35,7 +37,7 @@ class GroupInterfacer extends VertexInterfacer {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid group properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
@@ -64,17 +66,5 @@ class GroupInterfacer extends VertexInterfacer {
                 invalidVertexProperties()
             }
         }
-    }
-
-    protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
-        def deviceEdges = vertex.getEdges(Direction.OUT, "GroupsResource")
-        def deviceNames = []
-        if (deviceEdges)
-            deviceEdges.each {
-                def deviceName = it.getVertex(Direction.IN).getProperty("name")
-                deviceNames.add(deviceName)
-            }
-
-        return ["devices": deviceNames]
     }
 }

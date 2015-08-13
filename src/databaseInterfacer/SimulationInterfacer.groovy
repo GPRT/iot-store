@@ -1,6 +1,5 @@
 package databaseInterfacer
 
-import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
@@ -8,7 +7,13 @@ import exceptions.ResponseErrorException
 class SimulationInterfacer extends VertexInterfacer {
     def SimulationInterfacer(factory) {
         super(factory, "Simulation",
-                ["name", "domainData", "areas", "groups", "ignoredResources", "fakeAreaResources", "fakeGroupResources"])
+                ["name": "name",
+                 "domainData": "domainData",
+                 "fakeAreaResources": "fakeAreaResources",
+                 "fakeGroupResources": "fakeGroupResources"],
+                ["areas": "out(\"SimulatesArea\").name as areas",
+                 "groups": "out(\"SimulatesGroup\").name as groups",
+                 "ignoredResources": "out(\"ExcludesResource\").name as ignoredResources"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -36,7 +41,7 @@ class SimulationInterfacer extends VertexInterfacer {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid simulation properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
@@ -145,54 +150,5 @@ class SimulationInterfacer extends VertexInterfacer {
                 invalidVertexProperties()
             }
         }
-    }
-
-    protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
-        def deviceNames = []
-
-        def areaEdges = vertex.getEdges(Direction.OUT, "SimulatesArea")
-        def areaNames = []
-        if (areaEdges)
-            areaEdges.each {
-                def area = it.getVertex(Direction.IN)
-
-                def areaDeviceEdges = vertex.getEdges(Direction.OUT, "HasResource")
-                if (areaDeviceEdges)
-                    areaDeviceEdges.each {
-                        def deviceName = it.getVertex(Direction.IN).getProperty("name")
-                        deviceNames.add(deviceName)
-                    }
-
-                def areaName = area.getProperty("name")
-                areaNames.add(areaName)
-            }
-
-        def groupEdges = vertex.getEdges(Direction.OUT, "SimulatesGroup")
-        def groupNames = []
-        if (groupEdges)
-            groupEdges.each {
-                def group = it.getVertex(Direction.IN)
-
-                def groupDeviceEdges = group.getEdges(Direction.OUT, "GroupsResource")
-                if (groupDeviceEdges)
-                    groupDeviceEdges.each {
-                        def deviceName = it.getVertex(Direction.IN).getProperty("name")
-                        deviceNames.add(deviceName)
-                    }
-
-                def groupName = group.getProperty("name")
-                groupNames.add(groupName)
-            }
-
-        def ignoredResourceEdges = vertex.getEdges(Direction.OUT, "ExcludesResource")
-        def ignoredResourceNames = []
-        if (ignoredResourceEdges)
-            ignoredResourceEdges.each {
-                def deviceName = it.getVertex(Direction.IN).getProperty("name")
-                ignoredResourceNames.add(deviceName)
-            }
-
-        return ["devices": deviceNames, "ignoredResources": ignoredResourceNames,
-                "areas": areaNames, "groups": groupNames]
     }
 }

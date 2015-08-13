@@ -6,7 +6,11 @@ import exceptions.ResponseErrorException
 
 class VariableInterfacer extends VertexInterfacer {
     def VariableInterfacer(factory) {
-        super(factory, "MeasurementVariable", ["name", "domainData", "unit"])
+        super(factory, "MeasurementVariable",
+                ["name": "name",
+                 "domainData": "domainData",
+                 "unit": "unit"],
+                [:])
     }
 
     void vertexNotFoundById(Long id) {
@@ -34,7 +38,7 @@ class VariableInterfacer extends VertexInterfacer {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
                 "Invalid variable properties!",
-                "The valid ones are " + this.fields)
+                "The valid ones are " + this.getExpandedNames())
     }
 
     protected final LinkedHashMap generateVertexProperties(HashMap data) {
@@ -48,8 +52,5 @@ class VariableInterfacer extends VertexInterfacer {
     }
 
     protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
-    }
-
-    protected LinkedHashMap getExpandedVertex(OrientVertex vertex) {
     }
 }

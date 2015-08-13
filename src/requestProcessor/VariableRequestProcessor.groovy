@@ -4,6 +4,6 @@ import databaseInterfacer.VariableInterfacer
 
 class VariableRequestProcessor extends RequestProcessor {
     VariableRequestProcessor(factory) {
-        super(new VariableInterfacer(factory), ["name", "domainData", "unit"])
+        super(new VariableInterfacer(factory))
     }
 }
