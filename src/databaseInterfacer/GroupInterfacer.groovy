@@ -1,15 +1,16 @@
 package databaseInterfacer
 
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 class GroupInterfacer extends VertexInterfacer {
-    def GroupInterfacer(factory) {
-        super(factory, "Group",
+    def GroupInterfacer() {
+        super("Group",
                 ["name": "name",
                  "domainData": "domainData"],
-                ["devices": "out(\"GroupsResource\").name as devices"])
+                ["devices": "ifnull(out(\"GroupsResource\").networkId,[]) as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -48,12 +49,12 @@ class GroupInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data) {
         def deviceNames = data.devices.unique()
 
         for (deviceName in deviceNames) {
             if (String.isInstance(deviceName) && !deviceName.isEmpty()) {
-                OrientVertex device = getByIndex("name", deviceName, "Resource").getAt(0)
+                OrientVertex device = getByIndex(graph, "name", deviceName, "Resource").getAt(0)
                 if (device) {
                     vertex.addEdge("GroupsResource", device)
                 } else {
@@ -62,8 +63,6 @@ class GroupInterfacer extends VertexInterfacer {
                             "Device [" + deviceName + "] was not found!",
                             "The device does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
     }

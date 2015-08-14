@@ -1,12 +1,13 @@
 package databaseInterfacer
 
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 class VariableInterfacer extends VertexInterfacer {
-    def VariableInterfacer(factory) {
-        super(factory, "MeasurementVariable",
+    def VariableInterfacer() {
+        super("MeasurementVariable",
                 ["name": "name",
                  "domainData": "domainData",
                  "unit": "unit"],
@@ -51,6 +52,6 @@ class VariableInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data) {
     }
 }

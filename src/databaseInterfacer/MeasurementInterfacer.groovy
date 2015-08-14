@@ -13,10 +13,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
     enum Granularity {
         YEARS,MONTHS,DAYS,HOURS,MINUTES
     }
-
-    def MeasurementInterfacer(factory) {
-        super(factory, "Sample",
-                ["timestamp": "timestamp",
+class MeasurementInterfacer extends DocumentInterfacer {
+    def MeasurementInterfacer() {
+        super("Sample",
+                ["networkId": "networkId",
+                 "timestamp": "timestamp",
                  "measurementVariable": "measurementVariable",
                  "value": "value"],
                 [:])
@@ -27,7 +28,6 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 400,
                 "Invalid measurement properties!",
                 "The valid ones are " + this.fields)
-
     }
 
     void documentNotFoundById() {
@@ -37,11 +37,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 "The measurement does not exist")
     }
 
-    protected Iterable<LinkedHashMap> get(Set fieldNames, Set filterFields=[], Set sortFields=[],
+    protected Iterable<LinkedHashMap> get(OrientGraph graph,
+                                          Set fieldNames, Set filterFields=[], Set sortFields=[],
                                           int pageField=0, int pageLimitField=10, String className=this.className,
                                           networkId=null, beginTimestamp=null,
                                           endTimestamp=null, granularity=null) {
-        def graph = factory.getNoTx()
         def db = graph.getRawGraph()
         def parent = null
 
@@ -185,74 +185,70 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def measurementsRecord = parent.getProperty('measurements').getRecord()
         def yearMap = measurementsRecord.field('year')
         def yearRecord = yearMap.getAt(date.year + 1900)
-        def db = factory.getTx().getRawGraph()
+        def db = graph.getRawGraph()
 
-        try {
-            db.begin()
-            if (yearRecord == null) {
-                def newYearRecord = new ODocument('Year')
-                newYearRecord.field('month', new LinkedHashMap())
-                newYearRecord.save()
-                measurementsRecord.field('year').put(date.year + 1900, newYearRecord)
-                yearRecord = newYearRecord
-            }
+        db.begin()
+        if (yearRecord == null) {
+            def newYearRecord = new ODocument('Year')
+            newYearRecord.field('month', new LinkedHashMap())
+            newYearRecord.save()
+            measurementsRecord.field('year').put(date.year + 1900, newYearRecord)
+            yearRecord = newYearRecord
+        }
 
-            def monthMap = yearRecord.field('month')
-            def monthRecord = monthMap.getAt(date.month+1)
+        def monthMap = yearRecord.field('month')
+        def monthRecord = monthMap.getAt(date.month+1)
 
-            if (monthRecord == null) {
-                def newMonthRecord = new ODocument('Month')
-                newMonthRecord.field('day', new LinkedHashMap())
-                newMonthRecord.save()
-                monthMap.put(date.month+1, newMonthRecord)
-                monthRecord = newMonthRecord
-            }
+        if (monthRecord == null) {
+            def newMonthRecord = new ODocument('Month')
+            newMonthRecord.field('day', new LinkedHashMap())
+            newMonthRecord.save()
+            monthMap.put(date.month+1, newMonthRecord)
+            monthRecord = newMonthRecord
+        }
 
-            def dayMap = monthRecord.field('day')
-            def dayRecord = dayMap.getAt(date.date)
+        def dayMap = monthRecord.field('day')
+        def dayRecord = dayMap.getAt(date.date)
 
-            if (dayRecord == null) {
-                def newDayRecord = new ODocument('Day')
-                newDayRecord.field('hour', new LinkedHashMap())
-                newDayRecord.save()
-                dayMap.put(date.date, newDayRecord)
-                dayRecord = newDayRecord
-            }
+        if (dayRecord == null) {
+            def newDayRecord = new ODocument('Day')
+            newDayRecord.field('hour', new LinkedHashMap())
+            newDayRecord.save()
+            dayMap.put(date.date, newDayRecord)
+            dayRecord = newDayRecord
+        }
 
-            def hourMap = dayRecord.field('hour')
-            def hourRecord = hourMap.getAt(date.hours)
+        def hourMap = dayRecord.field('hour')
+        def hourRecord = hourMap.getAt(date.hours)
 
-            if (hourRecord == null) {
-                def newHourRecord = new ODocument('Hour')
-                newHourRecord.field('minute', new LinkedHashMap())
-                newHourRecord.save()
-                hourMap.put(date.hours, newHourRecord)
-                hourRecord = newHourRecord
-            }
+        if (hourRecord == null) {
+            def newHourRecord = new ODocument('Hour')
+            newHourRecord.field('minute', new LinkedHashMap())
+            newHourRecord.save()
+            hourMap.put(date.hours, newHourRecord)
+            hourRecord = newHourRecord
+        }
 
-            def minuteMap = hourRecord.field('minute')
-            def minuteRecord = minuteMap.getAt(date.minutes)
+        def minuteMap = hourRecord.field('minute')
+        def minuteRecord = minuteMap.getAt(date.minutes)
 
-            if (minuteRecord == null) {
-                def newMinuteRecord = new ODocument('Minute')
-                newMinuteRecord.field('sample',new ArrayList<ODocument>())
-                newMinuteRecord.save()
-                minuteMap.put(date.minutes, newMinuteRecord)
-                minuteRecord = newMinuteRecord
-            }
-            minuteRecord.field('sample').add(record)
-            minuteRecord.save()
+        if (minuteRecord == null) {
+            def newMinuteRecord = new ODocument('Minute')
+            newMinuteRecord.field('sample',new ArrayList<ODocument>())
+            newMinuteRecord.save()
+            minuteMap.put(date.minutes, newMinuteRecord)
+            minuteRecord = newMinuteRecord
+        }
+        minuteRecord.field('sample').add(record)
+        minuteRecord.save()
             hourRecord.save()
             dayRecord.save()
             monthRecord.save()
             yearRecord.save()
             measurementsRecord.save()
 
-            db.commit()
-        }
-        finally{
-            db.close()
-        }
+        db.commit()
+
 
     }
 }

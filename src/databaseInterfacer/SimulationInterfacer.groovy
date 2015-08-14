@@ -55,7 +55,7 @@ class SimulationInterfacer extends VertexInterfacer {
         for (HashMap fakeAreaResourceMap in fakeAreaResourcesMaps) {
             if (HashMap.isInstance(fakeAreaResourceMap) && !fakeAreaResourceMap.isEmpty()) {
                 def tempAreaName = fakeAreaResourceMap.isInArea
-                OrientVertex area = getByIndex("name", tempAreaName, "Area").getAt(0)
+                OrientVertex area = getByIndex(graph, "name", tempAreaName, "Area").getAt(0)
                 if (area) {
                     def fakeAreaResource = ["domainData":fakeAreaResourceMap.domainData,
                                              "isInArea":fakeAreaResourceMap.isInArea]
@@ -66,8 +66,6 @@ class SimulationInterfacer extends VertexInterfacer {
                             "Area [" + tempAreaName + "] was not found!",
                             "The area does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
 
@@ -87,9 +85,6 @@ class SimulationInterfacer extends VertexInterfacer {
                             "Group [" + tempGroupName + "] was not found!",
                             "The group does not exist")
                 }
-            } else {
-                invalidVertexProperties()
-            }
         }
 
         return ["name": areaName,
@@ -114,8 +109,6 @@ class SimulationInterfacer extends VertexInterfacer {
                             "Device [" + ignoredResourceName + "] was not found!",
                             "The device does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
 
@@ -130,8 +123,6 @@ class SimulationInterfacer extends VertexInterfacer {
                             "Area [" + areaName + "] was not found!",
                             "The area does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
 
@@ -146,8 +137,6 @@ class SimulationInterfacer extends VertexInterfacer {
                             "Group [" + groupName + "] was not found!",
                             "The group does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
     }

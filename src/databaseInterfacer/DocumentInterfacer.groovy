@@ -4,29 +4,27 @@ import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.orientechnologies.orient.core.exception.*
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
-import com.tinkerpop.blueprints.impls.orient.OrientVertex
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import exceptions.DocumentExceptionThrower
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExceptionThrower {
-
-    def DocumentInterfacer(Object factory, Object className, Object fields, links) {
-        super(factory, className, fields, links)
+    def DocumentInterfacer(Object className, Object fields, links) {
+        super(className, fields, links)
     }
 
     // Helpers
-    abstract protected LinkedHashMap generateDocumentProperties(HashMap data)
-    abstract protected void generateDocumentRelations(ODocument document, HashMap data, OrientVertex parent)
+    abstract protected LinkedHashMap generateDocumentProperties(OrientGraph graph, HashMap data)
+    abstract protected void generateDocumentRelations(OrientGraph graph, ODocument document, HashMap data, parent)
 
-    protected final LinkedHashMap create(HashMap data, Long id=null) {
+    protected final LinkedHashMap create(OrientGraph graph, HashMap data) {
         if (!(this.getFieldNames() == data.keySet()))
             invalidDocumentProperties()
 
         if (data.isEmpty())
             invalidDocumentProperties()
 
-        def graph = factory.getTx()
         def db = graph.getRawGraph()
         ODocument document = null
 
@@ -57,7 +55,7 @@ abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExc
                     document.field(key,value)
             }
             document.save()
-            generateDocumentRelations(document, data, parent)
+            generateDocumentRelations(graph, document, data, parent)
             db.commit()
 
             return this.orientTransformer.fromODocument(document)
@@ -66,15 +64,14 @@ abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExc
             document.delete()
             invalidDocumentProperties()
         }
-        finally {
-            db.close()
         }
     }
 
-    protected Iterable<LinkedHashMap> get(fieldNames, filterFields=[], sortFields=[],
+    protected Iterable<LinkedHashMap> get(OrientGraph graph,
+                                                fieldNames, filterFields=[], sortFields=[],
                                                 pageField=0, pageLimitField=10,
                                                 String className=this.className) {
-        def db = factory.getNoTx().getRawGraph()
+        def db = graph.getRawGraph()
         def osql = generateQuery(fieldNames, filterFields, sortFields, pageField, pageLimitField, className)
 
         def query = new OSQLSynchQuery(osql)
@@ -85,14 +82,10 @@ abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExc
             }
             db.commit()
         }
-        finally {
-            db.close()
-        }
     }
 
-    protected final LinkedHashMap delete(Long id, String className=this.className) {
-        def db = factory.getTx().getRawGraph()
-
+    protected final LinkedHashMap delete(OrientGraph graph, Long id, String className=this.className) {
+        def db = graph.getRawGraph()
         try {
             db.begin()
             def clusterId = (className == this.className) ? this.defaultClusterId : this.getClusterId(className)
@@ -105,8 +98,6 @@ abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExc
             db.delete(document)
             db.commit()
             return [:]
-        } finally {
-            db.close()
         }
     }
 }

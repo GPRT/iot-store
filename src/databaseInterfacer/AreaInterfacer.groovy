@@ -1,17 +1,18 @@
 package databaseInterfacer
 
 import com.tinkerpop.blueprints.Direction
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 class AreaInterfacer extends VertexInterfacer {
-    def AreaInterfacer(factory) {
-        super(factory, "Area",
+    def AreaInterfacer() {
+        super("Area",
                 ["name": "name",
                  "domainData": "domainData"],
-                ["parentArea": "in(\"HasArea\").name[0] as parentArea",
-                 "devices": "out(\"HasResource\").name as devices"])
+                ["parentArea": "ifnull(in(\"HasArea\").name[0],\"\") as parentArea",
+                 "devices": "ifnull(out(\"HasResource\").networkId,[]) as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -50,7 +51,7 @@ class AreaInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data) {
         def parentAreaName = data.parentArea
 
         if (parentAreaName && !parentAreaName.isEmpty()) {
@@ -84,8 +85,6 @@ class AreaInterfacer extends VertexInterfacer {
                             "Device [" + resourceName + "] was not found!",
                             "The device does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
     }

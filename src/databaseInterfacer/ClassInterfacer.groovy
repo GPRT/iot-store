@@ -1,22 +1,19 @@
 package databaseInterfacer
 
-import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import utils.OrientTransformer
 
 abstract class ClassInterfacer {
-    OrientGraphFactory factory
     OrientTransformer orientTransformer = new OrientTransformer()
-    Integer defaultClusterId = -1
-    String className = ""
+    Integer defaultClusterId = null
+    String className = null
     Map fields = [:]
     Map links = [:]
 
-    def ClassInterfacer(factory, className, fields, links) {
-        this.factory = factory
+    def ClassInterfacer(className, fields, links) {
         this.fields = fields
         this.links = links
         this.className = className
-        this.defaultClusterId = this.getClusterId(className)
     }
 
     abstract protected LinkedHashMap create(HashMap data)
@@ -24,13 +21,14 @@ abstract class ClassInterfacer {
     abstract protected Iterable<LinkedHashMap> get(Set fieldNames, Set filterFields, Set sortFields,
                                                    int pageField, int pageLimitField,String className)
 
-    protected final Number getClusterId(String className) {
-        def db = this.factory.getDatabase()
-        try {
-            return db.getClusterIdByName(className)
-        } finally {
-            db.close()
-        }
+    protected final Number getClusterId(ODatabaseDocumentTx db, String className) {
+        if (!this.defaultClusterId)
+            this.defaultClusterId = db.getClusterIdByName(this.className)
+
+        if (className == this.className)
+            return this.defaultClusterId
+
+        return db.getClusterIdByName(className)
     }
 
     public final Set getFieldNames() {
