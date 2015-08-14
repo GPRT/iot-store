@@ -8,7 +8,7 @@ import utils.InputValidator
 class MeasurementRequestProcessor extends RequestProcessor {
 
     MeasurementRequestProcessor(factory) {
-        super(new MeasurementInterfacer(factory))
+        super(factory, new MeasurementInterfacer())
     }
     public List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
