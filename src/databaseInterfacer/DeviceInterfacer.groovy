@@ -58,7 +58,7 @@ class DeviceInterfacer extends VertexInterfacer {
         def groupNames = data.groupNames.unique()
 
         if (String.isInstance(areaName) && !areaName.isEmpty()) {
-            OrientVertex area = getVerticesByIndex("name", areaName, "Area").getAt(0)
+            OrientVertex area = getByIndex("name", areaName, "Area").getAt(0)
             if (area) {
                 area.addEdge("HasResource", vertex)
             } else {
@@ -73,7 +73,7 @@ class DeviceInterfacer extends VertexInterfacer {
 
         for (groupName in groupNames) {
             if (String.isInstance(groupName) && !groupName.isEmpty()) {
-                OrientVertex group = getVerticesByIndex("name", groupName, "Group").getAt(0)
+                OrientVertex group = getByIndex("name", groupName, "Group").getAt(0)
                 if (group) {
                     group.addEdge("GroupsResource", vertex)
                 } else {

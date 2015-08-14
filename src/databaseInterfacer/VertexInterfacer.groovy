@@ -18,7 +18,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
     abstract protected LinkedHashMap generateVertexProperties(HashMap data)
     abstract protected void generateVertexRelations(OrientVertex vertex, HashMap data)
 
-    protected final LinkedHashMap createVertex(HashMap data) {
+    protected final LinkedHashMap create(HashMap data) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
@@ -50,10 +50,10 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             graph.shutdown()
         }
 
-        return this.getVertexById(id, this.getExpandedNames())
+        return this.getById(id, this.getExpandedNames())
     }
 
-    protected final LinkedHashMap deleteVertex(Long id, String className=this.className) {
+    protected final LinkedHashMap delete(Long id, String className=this.className) {
         def graph = factory.getTx()
 
         try {
@@ -71,7 +71,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         }
     }
 
-    protected final Iterable<LinkedHashMap> getVertices(Set fieldNames, Set filterFields=[], Set sortFields=[],
+    protected final Iterable<LinkedHashMap> get(Set fieldNames, Set filterFields=[], Set sortFields=[],
                                                         int pageField=0, int pageLimitField=10,
                                                         String className=this.className) {
         def graph = factory.getNoTx()
@@ -89,7 +89,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         }
     }
 
-    protected final LinkedHashMap setVertexById(Long id, HashMap data, String className=this.className) {
+    protected final LinkedHashMap setById(Long id, HashMap data, String className=this.className) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
@@ -126,17 +126,17 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             graph.shutdown()
         }
 
-        return this.getVertexById(rid.clusterPosition, this.getExpandedNames())
+        return this.getById(rid.clusterPosition, this.getExpandedNames())
     }
 
-    protected final Iterable<LinkedHashMap> getVertexById(Long id, Set fieldNames, String className=this.className) {
+    protected final Iterable<LinkedHashMap> getById(Long id, Set fieldNames, String className=this.className) {
         def clusterId = (className == this.className) ? this.defaultClusterId : this.getClusterId(className)
         def rid = new ORecordId(clusterId, id)
 
-        return this.getVertices(fieldNames, [].toSet(), [].toSet(), 0, 1, rid.toString())
+        return this.get(fieldNames, [].toSet(), [].toSet(), 0, 1, rid.toString())
     }
 
-    protected final Iterable<LinkedHashMap> getVerticesByIndex(String fieldName, String fieldValue,
+    protected final Iterable<LinkedHashMap> getByIndex(String fieldName, String fieldValue,
                                                                String className=this.className) {
         def graph = factory.getNoTx()
 
