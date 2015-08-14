@@ -27,7 +27,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def beginTimestampParam = req.queryParams("beginTimestamp")
         def endTimestampParam = req.queryParams("endTimestamp")
         def granularityParam = req.queryParams("granularity")
-        def networkId = req.params(':id')
+        def id = req.params(':id')
 
         boolean isExpanded = InputValidator.processExpandedParam(expandedParam)
         Set filterFields = InputValidator.processFilterParam(filterFieldsParam)
@@ -48,7 +48,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         }
 
         return this.databaseInterfacer.get(listFields, filterFields, sortFields, pageField, pageLimitField,
-                                            "Measurements",networkId,beginTimestamp, endTimestamp, granularity)
+                                            "Measurements",id,beginTimestamp, endTimestamp, granularity)
 
     }
 }

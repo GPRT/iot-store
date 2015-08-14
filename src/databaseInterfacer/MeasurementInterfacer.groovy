@@ -47,7 +47,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
         if(beginTimestamp >= endTimestamp){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
-                    404,
+                    400,
                     "Invalid timestamps [" + beginTimestamp +',' + endTimestamp + "]!",
                     "endTimestamp must be greater than beginTimestamp")
         }
@@ -65,31 +65,31 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         def findSubSet = {
-            set,beginRange,endRange,gran,rangeSize ->
+            measurementSet,beginRange,endRange,granularityLevel,rangeSize ->
                 def range = new ArrayList<ODocument>()
-                if(set.size() > 1) {
+                if(measurementSet.size() > 1) {
                     (beginRange..rangeSize).collect{
-                        if(set.first().field(gran).getAt(it))
-                            range.add(set.first().field(gran).getAt(it))
+                        if(measurementSet.first().field(granularityLevel).getAt(it))
+                            range.add(measurementSet.first().field(granularityLevel).getAt(it))
                     }
-                    if(set.size() > 2) {
-                        (1..set.size()-2).collect {
+                    if(measurementSet.size() > 2) {
+                        (1..measurementSet.size()-2).collect {
                             setIter ->
                             (0..rangeSize).collect {
-                                if(set[setIter].field(gran).getAt(it))
-                                    range.add(set[setIter].field(gran).getAt(it))
+                                if(measurementSet[setIter].field(granularityLevel).getAt(it))
+                                    range.add(measurementSet[setIter].field(granularityLevel).getAt(it))
                             }
                         }
                     }
                     (1..endRange).collect {
-                        if(set.last().field(gran).getAt(it))
-                            range.add(set.last().field(gran).getAt(it))
+                        if(measurementSet.last().field(granularityLevel).getAt(it))
+                            range.add(measurementSet.last().field(granularityLevel).getAt(it))
                     }
                 }
                 else{
                     (beginRange..endRange).collect {
-                        if(set.first().field(gran).getAt(it)) {
-                            range.add(set.first().field(gran).getAt(it))
+                        if(measurementSet.first().field(granularityLevel).getAt(it)) {
+                            range.add(measurementSet.first().field(granularityLevel).getAt(it))
                         }
                     }
                 }
