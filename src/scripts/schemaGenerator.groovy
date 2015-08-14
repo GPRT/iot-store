@@ -26,36 +26,36 @@ try {
     measurementVariableType.createProperty("unit", OType.STRING).setMandatory(true).setNotNull(true)
     graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "MeasurementVariable"))
 
-    OClass sampleType = schema.createClass("Sample")
+    OClass sampleType = schema.createClass("Sample", restrictedType)
     sampleType.createProperty("timestamp", OType.DATETIME)
     sampleType.createProperty("measurementVariable", OType.LINK, measurementVariableType)
     sampleType.createProperty("value", OType.DOUBLE)
 
-    OClass logType = schema.createClass("Log")
+    OClass logType = schema.createClass("Log", restrictedType)
     logType.createProperty("sum", OType.EMBEDDEDSET, sampleType)
     logType.createProperty("mean", OType.EMBEDDEDSET, sampleType)
 
-    OClass minuteType = schema.createClass("Minute")
+    OClass minuteType = schema.createClass("Minute", restrictedType)
     minuteType.createProperty("log", OType.LINK, logType)
     minuteType.createProperty("sample", OType.LINKLIST)
 
-    OClass hourType = schema.createClass("Hour")
+    OClass hourType = schema.createClass("Hour", restrictedType)
     hourType.createProperty("log", OType.LINK, logType)
     hourType.createProperty("minute", OType.LINKMAP, minuteType)
 
-    OClass dayType = schema.createClass("Day")
+    OClass dayType = schema.createClass("Day", restrictedType)
     dayType.createProperty("log", OType.LINK, logType)
     dayType.createProperty("hour", OType.LINKMAP, hourType)
 
-    OClass monthType = schema.createClass("Month")
+    OClass monthType = schema.createClass("Month", restrictedType)
     monthType.createProperty("log", OType.LINK, logType)
     monthType.createProperty("day", OType.LINKMAP, dayType)
 
-    OClass yearType = schema.createClass("Year")
+    OClass yearType = schema.createClass("Year", restrictedType)
     yearType.createProperty("log", OType.LINK, logType)
     yearType.createProperty("month", OType.LINKMAP, monthType)
 
-    OClass measurementsType = schema.createClass("Measurements")
+    OClass measurementsType = schema.createClass("Measurements", restrictedType)
     measurementsType.createProperty("year", OType.LINKMAP, yearType)
 
     OrientVertexType areaType = graph.createVertexType("Area")
