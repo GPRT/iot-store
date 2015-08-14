@@ -37,7 +37,7 @@ try {
 
     OClass minuteType = schema.createClass("Minute")
     minuteType.createProperty("log", OType.LINK, logType)
-    minuteType.createProperty("sample", OType.EMBEDDEDLIST)
+    minuteType.createProperty("sample", OType.LINKLIST)
 
     OClass hourType = schema.createClass("Hour")
     hourType.createProperty("log", OType.LINK, logType)
