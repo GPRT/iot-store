@@ -101,7 +101,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
             def granularityValue = Granularity.valueOf(granularity.toString())
             def begin = beginTimestamp
             def end = endTimestamp
-            def result = []
+            def results = []
             def measurements = parent.getProperty('measurements').getRecord()
 
             ArrayList<ODocument> years = (begin.year+1900..end.year+1900).collect{
@@ -122,20 +122,22 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                     begin.minutes, end.minutes, 'minute', 59)
                             minutes.each{
                                 min -> min.field('sample').each {
-                                    result.add(it)
+                                    results.add(it)
                                 }
                             }
                         }
-                        else result = hours
+                        else results = hours
                     }
-                    else result = days
+                    else results = days
                 }
-                else result = months
+                else results = months
             }
-            else result = years
+            else results = years
 
-            result.collect {
-                this.orientTransformer.fromODocument(it)
+            results.collect {
+                def result = this.orientTransformer.fromODocument(it)
+                result.put('measurementVariable',it.field('measurementVariable').field('name'))
+                result
             }
         }
         finally {
