@@ -32,6 +32,21 @@ class InputValidator {
         }
     }
 
+    static def processAuthentication(String encoded) {
+        if (encoded == null)
+            throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
+                    400,
+                    "Credentials were not provided!",
+                    "You should provide your authentication as basic auth")
+
+            encoded = encoded.toString().split(" ")[1]
+        String decoded = new String(Base64.getDecoder().decode(encoded), "UTF-8")
+
+        String login = decoded.split(":")[0]
+        String pass =  decoded.split(":")[1]
+        return [login, pass]
+    }
+
     static Long processId(String data) {
         try {
             def id =  data.toLong()
