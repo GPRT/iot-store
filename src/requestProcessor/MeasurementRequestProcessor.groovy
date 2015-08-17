@@ -14,12 +14,11 @@ class MeasurementRequestProcessor extends RequestProcessor {
         res.type("application/json");
 
         Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = ["fields", "filter", "sort", "expanded", "page", "pageLimit",
+        Set<String> allowedQueryParams = ["fields", "filter", "sort", "page", "pageLimit",
                                           "beginTimestamp", "endTimestamp", "granularity"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         def fieldsParam = req.queryParams("fields")
-        def expandedParam = req.queryParams("expanded")
         def filterFieldsParam = req.queryParams("filter")
         def sortFieldsParam = req.queryParams("sort")
         def pageParam = req.queryParams("page")
@@ -29,7 +28,6 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def granularityParam = req.queryParams("granularity")
         def id = req.params(':id')
 
-        boolean isExpanded = InputValidator.processExpandedParam(expandedParam)
         Set filterFields = InputValidator.processFilterParam(filterFieldsParam)
         Set sortFields = InputValidator.processSortParam(sortFieldsParam)
         int pageField = InputValidator.processPageParam(pageParam)
@@ -41,11 +39,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         Set allowedFieldNames = null
         Set listFields = null
 
-        if (isExpanded) {
-            listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getExpandedNames())
-        } else {
-            listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
-        }
+        listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
 
         return this.databaseInterfacer.get(listFields, filterFields, sortFields, pageField, pageLimitField,
                                             "Measurements",id,beginTimestamp, endTimestamp, granularity)
