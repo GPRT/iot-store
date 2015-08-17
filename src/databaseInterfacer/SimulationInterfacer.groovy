@@ -55,7 +55,7 @@ class SimulationInterfacer extends VertexInterfacer {
         for (HashMap fakeAreaResourceMap in fakeAreaResourcesMaps) {
             if (HashMap.isInstance(fakeAreaResourceMap) && !fakeAreaResourceMap.isEmpty()) {
                 def tempAreaName = fakeAreaResourceMap.isInArea
-                OrientVertex area = getVerticesByIndex("name", tempAreaName, "Area").getAt(0)
+                OrientVertex area = getByIndex("name", tempAreaName, "Area").getAt(0)
                 if (area) {
                     def fakeAreaResource = ["domainData":fakeAreaResourceMap.domainData,
                                              "isInArea":fakeAreaResourceMap.isInArea]
@@ -76,7 +76,7 @@ class SimulationInterfacer extends VertexInterfacer {
         for (HashMap fakeGroupResourceMap in fakeGroupResourcesMaps) {
             if (HashMap.isInstance(fakeGroupResourceMap) && !fakeGroupResourceMap.isEmpty()) {
                 def tempGroupName = fakeGroupResourceMap.isInGroup
-                OrientVertex group = getVerticesByIndex("name", tempGroupName, "Group").getAt(0)
+                OrientVertex group = getByIndex("name", tempGroupName, "Group").getAt(0)
                 if (group) {
                     def fakeGroupResource = ["domainData":fakeGroupResourceMap.domainData,
                                              "isInGroup":fakeGroupResourceMap.isInGroup]
@@ -105,7 +105,7 @@ class SimulationInterfacer extends VertexInterfacer {
 
         for (ignoredResourceName in ignoredResourceNames) {
             if (String.isInstance(ignoredResourceName) && !ignoredResourceName.isEmpty()) {
-                OrientVertex device = getVerticesByIndex("name", ignoredResourceName, "Resource").getAt(0)
+                OrientVertex device = getByIndex("name", ignoredResourceName, "Resource").getAt(0)
                 if (device) {
                     vertex.addEdge("ExcludesResource", device)
                 } else {
@@ -121,7 +121,7 @@ class SimulationInterfacer extends VertexInterfacer {
 
         for (areaName in areaNames) {
             if (String.isInstance(areaName) && !areaName.isEmpty()) {
-                OrientVertex area = getVerticesByIndex("name", areaName, "Area").getAt(0)
+                OrientVertex area = getByIndex("name", areaName, "Area").getAt(0)
                 if (area) {
                     vertex.addEdge("SimulatesArea", area)
                 } else {
@@ -137,7 +137,7 @@ class SimulationInterfacer extends VertexInterfacer {
 
         for (groupName in groupNames) {
             if (String.isInstance(groupName) && !groupName.isEmpty()) {
-                OrientVertex group = getVerticesByIndex("name", groupName, "Group").getAt(0)
+                OrientVertex group = getByIndex("name", groupName, "Group").getAt(0)
                 if (group) {
                     vertex.addEdge("SimulatesGroup", group)
                 } else {

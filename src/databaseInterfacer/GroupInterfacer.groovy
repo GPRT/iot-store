@@ -53,7 +53,7 @@ class GroupInterfacer extends VertexInterfacer {
 
         for (deviceName in deviceNames) {
             if (String.isInstance(deviceName) && !deviceName.isEmpty()) {
-                OrientVertex device = getVerticesByIndex("name", deviceName, "Resource").getAt(0)
+                OrientVertex device = getByIndex("name", deviceName, "Resource").getAt(0)
                 if (device) {
                     vertex.addEdge("GroupsResource", device)
                 } else {

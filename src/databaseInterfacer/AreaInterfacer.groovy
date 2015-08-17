@@ -54,7 +54,7 @@ class AreaInterfacer extends VertexInterfacer {
         def parentAreaName = data.parentArea
 
         if (parentAreaName && !parentAreaName.isEmpty()) {
-            OrientVertex parent = getVerticesByIndex("name", parentAreaName).getAt(0)
+            OrientVertex parent = getByIndex("name", parentAreaName).getAt(0)
             if (parent) {
                 parent.addEdge("HasArea", vertex)
             }
@@ -67,7 +67,7 @@ class AreaInterfacer extends VertexInterfacer {
 
         for (resourceName in resourcesNames) {
             if (String.isInstance(resourceName) && !resourceName.isEmpty()) {
-                OrientVertex device = getVerticesByIndex("name", resourceName, "Resource").getAt(0)
+                OrientVertex device = getByIndex("name", resourceName, "Resource").getAt(0)
                 if (device) {
                     def numAreas = device.countEdges(Direction.IN, "HasResource")
 

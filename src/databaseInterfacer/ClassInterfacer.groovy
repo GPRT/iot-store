@@ -19,6 +19,11 @@ abstract class ClassInterfacer {
         this.defaultClusterId = this.getClusterId(className)
     }
 
+    abstract protected LinkedHashMap create(HashMap data)
+    abstract protected LinkedHashMap delete(Long id, String className)
+    abstract protected Iterable<LinkedHashMap> get(Set fieldNames, Set filterFields, Set sortFields,
+                                                   int pageField, int pageLimitField,String className)
+
     protected final Number getClusterId(String className) {
         def db = this.factory.getDatabase()
         try {

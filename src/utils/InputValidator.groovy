@@ -6,6 +6,11 @@ import groovy.json.JsonException
 import groovy.json.JsonSlurper
 
 class InputValidator {
+
+    static enum Granularity {
+        YEARS,MONTHS,DAYS,HOURS,MINUTES
+    }
+
     static String validateQueryParams(fields, allowedQueryParams) {
         fields.each { queryParamName ->
             if (!(queryParamName in allowedQueryParams))
@@ -199,6 +204,30 @@ class InputValidator {
                     400,
                     "[" + data + "] is not a valid json!",
                     "The provided json cannot be parsed")
+        }
+    }
+
+   static Date processTimestampParam(String timestamp) {
+        try{
+            return new Date(timestamp)
+        }
+        catch (IllegalArgumentException e){
+            throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
+                    400,
+                    "Timestamp ["+timestamp+"] is invalid!",
+                    'Possible format "MM/DD/YYYY hh:mm:ss"')
+        }
+    }
+
+    static Granularity processGranularityParam(String granularity) {
+        try{
+            return Granularity.valueOf(granularity)
+        }
+        catch (IllegalArgumentException e){
+            throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,
+                    400,
+                    "Granularity ["+granularity+"] is invalid!",
+                    "Possible granularities are: YEARS,MONTHS,DAYS,HOURS,MINUTES")
         }
     }
 }

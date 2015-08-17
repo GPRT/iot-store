@@ -12,7 +12,7 @@ class RequestProcessor {
         this.databaseInterfacer = databaseInterfacer
     }
 
-    final List<LinkedHashMap> get(Request req, Response res) {
+    public List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
 
         Set<String> queryFields = req.queryParams()
@@ -41,7 +41,8 @@ class RequestProcessor {
             listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
         }
 
-        return this.databaseInterfacer.getVertices(listFields, filterFields, sortFields, pageField, pageLimitField)
+        return this.databaseInterfacer.get(listFields, filterFields, sortFields, pageField, pageLimitField)
+
     }
 
     final LinkedHashMap setById(Request req, Response res) {
@@ -57,7 +58,7 @@ class RequestProcessor {
         String json = req.body()
         json = (!json.isEmpty()) ? json : "{}"
 
-        return this.databaseInterfacer.setVertexById(id, InputValidator.processJson(json))
+        return this.databaseInterfacer.setById(id, InputValidator.processJson(json))
     }
 
     final LinkedHashMap getById(Request req, Response res) {
@@ -67,12 +68,11 @@ class RequestProcessor {
         Set<String> allowedQueryParams = ["expanded"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        Long id = InputValidator.processId(req.params(":id"))
+        Long id = InputValidator.processId(req.params(":id"));
 
         def expandedParam = req.queryParams("expanded")
 
         def isExpanded = InputValidator.processExpandedParam(expandedParam)
-
         Set listFields = null
 
         if (isExpanded) {
@@ -81,7 +81,7 @@ class RequestProcessor {
             listFields = this.databaseInterfacer.getFieldNames()
         }
 
-        return this.databaseInterfacer.getVertexById(id, listFields)
+        return this.databaseInterfacer.getById(id, listFields)
     }
 
     final LinkedHashMap delete(Request req, Response res) {
@@ -93,34 +93,28 @@ class RequestProcessor {
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
-        return this.databaseInterfacer.deleteVertex(id);
+        return this.databaseInterfacer.delete(id);
     }
 
-    final LinkedHashMap createVertex(Request req, Response res) {
+    final LinkedHashMap create(Request req, Response res) {
         res.type ( "application/json" );
         res.status(201);
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = []
+
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        Long id = -1
+        if(req.params(":id"))
+            id = InputValidator.processId(req.params(":id"))
 
         String json = req.body()
         json = (!json.isEmpty()) ? json : "{}"
 
-        return this.databaseInterfacer.createVertex(InputValidator.processJson(json))
-    }
-
-    final LinkedHashMap createDocument(Request req, Response res) {
-        res.type ( "application/json" );
-        res.status(201);
-
-        Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = []
-        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
-
-        String json = req.body()
-        json = (!json.isEmpty()) ? json : "{}"
-
-        return this.databaseInterfacer.createDocument(InputValidator.processJson(json))
+        if(id>=0)
+            return this.databaseInterfacer.create(InputValidator.processJson(json),id.toLong())
+        else
+            return this.databaseInterfacer.create(InputValidator.processJson(json))
     }
 }
