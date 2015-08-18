@@ -1,12 +1,14 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 
 class VariableInterfacer extends VertexInterfacer {
-    def VariableInterfacer(factory) {
-        super(factory, "MeasurementVariable",
+    def VariableInterfacer() {
+        super("MeasurementVariable",
                 ["name": "name",
                  "domainData": "domainData",
                  "unit": "unit"],
@@ -41,7 +43,9 @@ class VariableInterfacer extends VertexInterfacer {
                 "The valid ones are " + this.getExpandedNames())
     }
 
-    protected final LinkedHashMap generateVertexProperties(HashMap data) {
+    protected final LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                           HashMap data,
+                                                           HashMap optionalData = [:]) {
         def areaName = data.name
         def unitName = data.unit
         def domainData =  data.domainData
@@ -51,6 +55,9 @@ class VariableInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                           OrientVertex vertex,
+                                           HashMap data,
+                                           HashMap optionalData = [:]) {
     }
 }

@@ -4,6 +4,6 @@ import databaseInterfacer.AreaInterfacer
 
 class AreaRequestProcessor extends RequestProcessor {
     AreaRequestProcessor(factory) {
-        super(new AreaInterfacer(factory))
+        super(factory, new AreaInterfacer())
     }
 }

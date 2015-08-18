@@ -1,110 +1,111 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.exception.OValidationException
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 import com.tinkerpop.blueprints.Direction
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
+import exceptions.ResponseErrorCode
+import exceptions.ResponseErrorException
 import exceptions.VertexExceptionThrower
 
 abstract class VertexInterfacer extends ClassInterfacer implements VertexExceptionThrower {
 
-    def VertexInterfacer(factory, className, fields, links) {
-        super(factory, className, fields, links)
+    def VertexInterfacer(className, fields, links) {
+        super(className, fields, links)
     }
 
     // Helpers
-    abstract protected LinkedHashMap generateVertexProperties(HashMap data)
-    abstract protected void generateVertexRelations(OrientVertex vertex, HashMap data)
+    abstract protected LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                              HashMap data,
+                                                              HashMap optionalData)
+    abstract protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                                    OrientVertex vertex,
+                                                    HashMap data,
+                                                    HashMap optionalData)
 
-    protected final LinkedHashMap create(HashMap data) {
+    protected final LinkedHashMap create(ODatabaseDocumentTx db,
+                                         HashMap data,
+                                         HashMap optionalData = [:]) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
         if (data.isEmpty())
             invalidVertexProperties()
 
-        def graph = factory.getNoTx()
         Long id = -1
+        OrientGraph graph = new OrientGraph(db)
+        OrientVertex vertex = null
 
         try {
-            OrientVertex vertex = null
-            def properties = generateVertexProperties(data)
+            def properties = generateVertexProperties(db, data, optionalData)
 
             if (null in properties.values())
                 invalidVertexProperties()
 
             vertex = graph.addVertex("class:" + this.className, properties)
-            generateVertexRelations(vertex, data)
+            generateVertexRelations(db, vertex, data, optionalData)
             graph.commit()
 
             id = vertex.identity.clusterPosition
+
+            return this.getById(db, id, this.getExpandedNames(), className)
         } catch(OValidationException e) {
-            graph.rollback()
             invalidVertexProperties()
         } catch(ORecordDuplicatedException e) {
-            graph.rollback()
             duplicatedVertex()
-        } finally {
-            graph.shutdown()
-        }
+        } catch(ResponseErrorException e) {
+            if (vertex)
+                graph.removeVertex(vertex)
 
-        return this.getById(id, this.getExpandedNames())
-    }
-
-    protected final LinkedHashMap delete(Long id, String className=this.className) {
-        def graph = factory.getTx()
-
-        try {
-            def clusterId = (className == this.className) ? this.defaultClusterId : this.getClusterId(className)
-            def rid = new ORecordId(clusterId, id.toLong())
-            OrientVertex vertex = graph.getVertex(rid)
-
-            if (!vertex)
-                vertexNotFoundById(id)
-
-            graph.removeVertex(vertex)
-            return [:]
-        } finally {
-            graph.shutdown()
+            throw e
         }
     }
 
-    protected final Iterable<LinkedHashMap> get(Set fieldNames, Set filterFields=[], Set sortFields=[],
-                                                        int pageField=0, int pageLimitField=10,
-                                                        String className=this.className) {
-        def graph = factory.getNoTx()
+    protected final LinkedHashMap delete(ODatabaseDocumentTx db, Long id, String className=this.className) {
+        def clusterId = this.getClusterId(db, className)
+        def rid = new ORecordId(clusterId, id.toLong())
+        OrientGraph graph = new OrientGraph(db)
+        OrientVertex vertex = graph.getVertex(rid)
 
-        def osql = super.generateQuery(fieldNames, filterFields, sortFields, pageField, pageLimitField, className)
+        if (!vertex)
+            vertexNotFoundById(id)
 
-        def query = new OSQLSynchQuery(osql)
-        try {
-            graph.command(query).execute().collect {
-                this.orientTransformer.fromOVertex(it)
-            }
-        }
-        finally {
-            graph.shutdown()
+        graph.removeVertex(vertex)
+        return [:]
+    }
+
+    protected final Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
+                                                HashMap params = [:],
+                                                String className = this.className) {
+        def results = super.getDocuments(db, params, className)
+
+        return results.collect() {
+            this.orientTransformer.fromODocument(it)
         }
     }
 
-    protected final LinkedHashMap setById(Long id, HashMap data, String className=this.className) {
+    protected final LinkedHashMap setById(ODatabaseDocumentTx db,
+                                          Long id,
+                                          HashMap data,
+                                          String className=this.className) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
         if (data.isEmpty())
             invalidVertexProperties()
 
-        def clusterId = (className == this.className) ? this.defaultClusterId : this.getClusterId(className)
+        def clusterId = this.getClusterId(db, className)
         def rid = new ORecordId(clusterId, id)
 
-        def graph = factory.getNoTx()
-
         try {
+            OrientGraph graph = new OrientGraph(db)
             OrientVertex vertex = graph.getVertex(rid)
 
-            def properties = generateVertexProperties(data)
+            def properties = generateVertexProperties(db, data)
 
             if (null in properties.values())
                 invalidVertexProperties()
@@ -115,36 +116,28 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
                 graph.removeEdge(edge)
             }
 
-            generateVertexRelations(vertex, data)
+            generateVertexRelations(db, vertex, data)
             graph.commit()
         } catch (ORecordDuplicatedException e) {
-            graph.rollback()
             duplicatedVertex()
         } catch (NullPointerException e) {
             vertexNotFoundById(id)
-        } finally {
-            graph.shutdown()
         }
 
-        return this.getById(rid.clusterPosition, this.getExpandedNames())
+        return this.getById(db, rid.clusterPosition, this.getExpandedNames(), className)
     }
 
-    protected final Iterable<LinkedHashMap> getById(Long id, Set fieldNames, String className=this.className) {
-        def clusterId = (className == this.className) ? this.defaultClusterId : this.getClusterId(className)
-        def rid = new ORecordId(clusterId, id)
+    protected final Iterable<LinkedHashMap> getById(ODatabaseDocumentTx db,
+                                                    Long id,
+                                                    Set fieldNames,
+                                                    String className=this.className) {
+        def vertex = this.getDocumentById(db, id, fieldNames, className)
 
-        return this.get(fieldNames, [].toSet(), [].toSet(), 0, 1, rid.toString())
-    }
+        if (!vertex.getAt(0))
+            vertexNotFoundById(id)
 
-    protected final Iterable<LinkedHashMap> getByIndex(String fieldName, String fieldValue,
-                                                               String className=this.className) {
-        def graph = factory.getNoTx()
-
-        try {
-            return graph.getVertices(className + "." + fieldName, fieldValue)
-        }
-        finally {
-            graph.shutdown()
+        return vertex.collect {
+            this.orientTransformer.fromODocument(vertex)
         }
     }
 }

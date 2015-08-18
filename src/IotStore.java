@@ -1,4 +1,4 @@
-import com.tinkerpop.blueprints.impls.orient.*;
+import com.orientechnologies.orient.core.db.OPartitionedDatabasePoolFactory;
 import requestProcessor.*;
 import utils.JsonTransformer;
 import exceptions.ResponseErrorException;
@@ -6,7 +6,8 @@ import exceptions.ResponseErrorException;
 import static spark.Spark.*;
 
 public class IotStore {
-    static OrientGraphFactory factory = new OrientGraphFactory("remote:localhost/iot").setupPool(1, 10);
+    static OPartitionedDatabasePoolFactory factory = new OPartitionedDatabasePoolFactory();
+
     static AreaRequestProcessor areaRequestProcessor;
     static VariableRequestProcessor variableRequestProcessor;
     static DeviceRequestProcessor deviceRequestProcessor;

@@ -1,18 +1,19 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
 
 class DeviceInterfacer extends VertexInterfacer {
-    def DeviceInterfacer(factory) {
-        super(factory, "Resource",
-                ["name": "name",
-                 "domainData": "domainData",
+    def DeviceInterfacer() {
+        super("Resource",
+                ["domainData": "domainData",
                  "networkId": "networkId"],
                 ["areaName": "ifnull(in(\"HasResource\").name[0], \"\") as areaName",
-                 "groupNames": "in(\"GroupsResource\").name as groupNames"])
+                 "groupNames": "ifnull(in(\"GroupsResource\").name,[]) as groupNames"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -43,22 +44,25 @@ class DeviceInterfacer extends VertexInterfacer {
                 "The valid ones are " + this.getExpandedNames())
     }
 
-    protected final LinkedHashMap generateVertexProperties(HashMap data) {
-        def deviceName = data.name
+    protected final LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                           HashMap data,
+                                                           HashMap optionalData = [:]) {
         def networkId = data.networkId
         def domainData =  data.domainData
 
-        return ["name": deviceName,
-                "networkId": networkId,
+        return ["networkId": networkId,
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                           OrientVertex vertex,
+                                           HashMap data,
+                                           HashMap optionalData = [:]) {
         def areaName = data.areaName
         def groupNames = data.groupNames.unique()
 
         if (String.isInstance(areaName) && !areaName.isEmpty()) {
-            OrientVertex area = getByIndex("name", areaName, "Area").getAt(0)
+            OrientVertex area = getVerticesByIndex(db, "name", areaName, "Area").getAt(0)
             if (area) {
                 area.addEdge("HasResource", vertex)
             } else {
@@ -67,13 +71,11 @@ class DeviceInterfacer extends VertexInterfacer {
                         "Area [" + areaName + "] was not found!",
                         "The area does not exist")
             }
-        } else {
-            invalidVertexProperties()
         }
 
         for (groupName in groupNames) {
             if (String.isInstance(groupName) && !groupName.isEmpty()) {
-                OrientVertex group = getByIndex("name", groupName, "Group").getAt(0)
+                OrientVertex group = getVerticesByIndex(db, "name", groupName, "Group").getAt(0)
                 if (group) {
                     group.addEdge("GroupsResource", vertex)
                 } else {
@@ -82,13 +84,10 @@ class DeviceInterfacer extends VertexInterfacer {
                             "Group [" + groupName + "] was not found!",
                             "The group does not exist")
                 }
-            } else {
-                invalidVertexProperties()
             }
         }
 
         def measurements = new ODocument("Measurements")
-
         measurements.field('year',new LinkedHashMap())
         measurements.save()
 

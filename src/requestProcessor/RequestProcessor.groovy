@@ -1,19 +1,53 @@
 package requestProcessor
 
+import com.orientechnologies.orient.core.db.OPartitionedDatabasePoolFactory
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.orientechnologies.orient.core.exception.OSecurityAccessException
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import databaseInterfacer.ClassInterfacer
+import exceptions.ResponseErrorCode
+import exceptions.ResponseErrorException
 import spark.Request
 import spark.Response
 import utils.InputValidator
 
 class RequestProcessor {
     final ClassInterfacer databaseInterfacer
+    final OPartitionedDatabasePoolFactory factory
 
-    RequestProcessor(ClassInterfacer databaseInterfacer) {
+    RequestProcessor(OPartitionedDatabasePoolFactory factory, ClassInterfacer databaseInterfacer) {
+        this.factory = factory
         this.databaseInterfacer = databaseInterfacer
     }
 
-    public List<LinkedHashMap> get(Request req, Response res) {
+    protected OrientGraph getGraph(String login, String password) {
+        try {
+            return new OrientGraph(this.getDatabase(login, password))
+        } catch (OSecurityAccessException e) {
+            throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
+                    400,
+                    "The basic auth failed!",
+                    "Check if your login and password are correct")
+        }
+    }
+
+    protected ODatabaseDocumentTx getDatabase(String login="root", String password="123456") {
+        try {
+            return this.factory.get("remote:localhost/iot", login, password).acquire()
+        } catch (OSecurityAccessException e) {
+            throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
+                    400,
+                    "The basic auth failed!",
+                    "Check if your login and password are correct")
+        }
+    }
+
+    List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = ["fields", "filter", "sort", "expanded", "page", "pageLimit"]
@@ -32,7 +66,6 @@ class RequestProcessor {
         int pageField = InputValidator.processPageParam(pageParam)
         int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
-        Set allowedFieldNames = null
         Set listFields = null
 
         if (isExpanded) {
@@ -41,13 +74,26 @@ class RequestProcessor {
             listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
         }
 
-        return this.databaseInterfacer.get(listFields, filterFields, sortFields, pageField, pageLimitField)
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        LinkedHashMap params = ["listFields":listFields,
+                                "filterFields":filterFields,
+                                "sortFields":sortFields,
+                                "pageField":pageField,
+                                "pageLimitField":pageLimitField]
 
+        try {
+            return this.databaseInterfacer.get(db, params)
+        } finally {
+            db.close()
+        }
     }
 
-    final LinkedHashMap setById(Request req, Response res) {
+    LinkedHashMap setById(Request req, Response res) {
         res.type ( "application/json" );
         res.status(201);
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = []
@@ -58,21 +104,30 @@ class RequestProcessor {
         String json = req.body()
         json = (!json.isEmpty()) ? json : "{}"
 
-        return this.databaseInterfacer.setById(id, InputValidator.processJson(json))
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        try {
+            return this.databaseInterfacer.setById(db, id, InputValidator.processJson(json))
+        } finally {
+            db.close()
+        }
     }
 
-    final LinkedHashMap getById(Request req, Response res) {
+    LinkedHashMap getById(Request req, Response res) {
         res.type("application/json");
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = ["expanded"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        Long id = InputValidator.processId(req.params(":id"));
+        Long id = InputValidator.processId(req.params(":id"))
 
         def expandedParam = req.queryParams("expanded")
 
         def isExpanded = InputValidator.processExpandedParam(expandedParam)
+
         Set listFields = null
 
         if (isExpanded) {
@@ -81,40 +136,54 @@ class RequestProcessor {
             listFields = this.databaseInterfacer.getFieldNames()
         }
 
-        return this.databaseInterfacer.getById(id, listFields)
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        try {
+            return this.databaseInterfacer.getById(db, id, listFields)
+        } finally {
+            db.close()
+        }
     }
 
-    final LinkedHashMap delete(Request req, Response res) {
+    LinkedHashMap delete(Request req, Response res) {
         res.type("application/json");
         res.status(204);
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = []
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
-        return this.databaseInterfacer.delete(id);
+
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        try {
+            return this.databaseInterfacer.delete(db, id)
+        } finally {
+            db.close()
+        }
     }
 
-    final LinkedHashMap create(Request req, Response res) {
+    LinkedHashMap create(Request req, Response res) {
         res.type ( "application/json" );
         res.status(201);
 
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
+
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = []
-
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
-
-        Long id = -1
-        if(req.params(":id"))
-            id = InputValidator.processId(req.params(":id"))
 
         String json = req.body()
         json = (!json.isEmpty()) ? json : "{}"
 
-        if(id>=0)
-            return this.databaseInterfacer.create(InputValidator.processJson(json),id.toLong())
-        else
-            return this.databaseInterfacer.create(InputValidator.processJson(json))
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        try {
+            return this.databaseInterfacer.create(db, InputValidator.processJson(json))
+        } finally {
+            db.close()
+        }
     }
 }

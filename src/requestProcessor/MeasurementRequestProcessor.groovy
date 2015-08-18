@@ -1,4 +1,8 @@
 package requestProcessor
+
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import spark.Request
 import spark.Response
 
@@ -8,41 +12,64 @@ import utils.InputValidator
 class MeasurementRequestProcessor extends RequestProcessor {
 
     MeasurementRequestProcessor(factory) {
-        super(new MeasurementInterfacer(factory))
+        super(factory, new MeasurementInterfacer())
     }
-    public List<LinkedHashMap> get(Request req, Response res) {
-        res.type("application/json");
+
+    LinkedHashMap create(Request req, Response res) {
+        res.type ( "application/json" );
+        res.status(201);
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = ["fields", "filter", "sort", "page", "pageLimit",
-                                          "beginTimestamp", "endTimestamp", "granularity"]
+        Set<String> allowedQueryParams = []
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
-        def fieldsParam = req.queryParams("fields")
-        def filterFieldsParam = req.queryParams("filter")
-        def sortFieldsParam = req.queryParams("sort")
-        def pageParam = req.queryParams("page")
-        def pageLimitParam = req.queryParams("pageLimit")
+        Long id = InputValidator.processId(req.params(":id"))
+
+        String json = req.body()
+        json = (!json.isEmpty()) ? json : "{}"
+
+        LinkedHashMap data = InputValidator.processJson(json)
+
+        def db = this.getDatabase(login, pass)
+        try {
+            return this.databaseInterfacer.create(db, data, ["networkId": id.toLong()])
+        } finally {
+            db.close()
+        }
+    }
+
+    List<LinkedHashMap> get(Request req, Response res) {
+        res.type("application/json");
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
+
+        Set<String> queryFields = req.queryParams()
+        Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp", "granularity"]
+        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        Long id = InputValidator.processId(req.params(":id"))
+
         def beginTimestampParam = req.queryParams("beginTimestamp")
         def endTimestampParam = req.queryParams("endTimestamp")
         def granularityParam = req.queryParams("granularity")
-        def id = req.params(':id')
 
-        Set filterFields = InputValidator.processFilterParam(filterFieldsParam)
-        Set sortFields = InputValidator.processSortParam(sortFieldsParam)
-        int pageField = InputValidator.processPageParam(pageParam)
-        int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
         def beginTimestamp = InputValidator.processTimestampParam(beginTimestampParam)
         def endTimestamp = InputValidator.processTimestampParam(endTimestampParam)
         def granularity = InputValidator.processGranularityParam(granularityParam)
 
-        Set allowedFieldNames = null
-        Set listFields = null
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        LinkedHashMap params = ["beginTimestamp":beginTimestamp,
+                                "endTimestamp":endTimestamp,
+                                "granularity":granularity]
 
-        listFields = InputValidator.processListFieldsParam(fieldsParam, this.databaseInterfacer.getFieldNames())
-
-        return this.databaseInterfacer.get(listFields, filterFields, sortFields, pageField, pageLimitField,
-                                            "Measurements",id,beginTimestamp, endTimestamp, granularity)
-
+        try {
+            return this.databaseInterfacer.get(db, params, ["networkId": id.toLong()])
+        } finally {
+            db.close()
+        }
     }
 }
