@@ -1,5 +1,6 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
@@ -41,7 +42,9 @@ class GroupInterfacer extends VertexInterfacer {
                 "The valid ones are " + this.getExpandedNames())
     }
 
-    protected final LinkedHashMap generateVertexProperties(HashMap data) {
+    protected final LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                           HashMap data,
+                                                           HashMap optionalData = [:]) {
         def areaName = data.name
         def domainData =  data.domainData
 
@@ -49,12 +52,15 @@ class GroupInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                           OrientVertex vertex,
+                                           HashMap data,
+                                           HashMap optionalData = [:]) {
         def deviceNames = data.devices.unique()
 
         for (deviceName in deviceNames) {
             if (String.isInstance(deviceName) && !deviceName.isEmpty()) {
-                OrientVertex device = getByIndex(graph, "name", deviceName, "Resource").getAt(0)
+                OrientVertex device = getVerticesByIndex(db, "networkId", deviceName, "Resource").getAt(0)
                 if (device) {
                     vertex.addEdge("GroupsResource", device)
                 } else {

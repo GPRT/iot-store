@@ -1,5 +1,6 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
@@ -43,7 +44,9 @@ class AreaInterfacer extends VertexInterfacer {
                 "The valid ones are " + this.getExpandedNames())
     }
 
-    protected final LinkedHashMap generateVertexProperties(HashMap data) {
+    protected final LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                           HashMap data,
+                                                           HashMap optionalData = [:]) {
         def areaName = data.name
         def domainData =  data.domainData
 
@@ -51,11 +54,14 @@ class AreaInterfacer extends VertexInterfacer {
                 "domainData": domainData]
     }
 
-    protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data) {
+    protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                           OrientVertex vertex,
+                                           HashMap data,
+                                           HashMap optionalData = [:]) {
         def parentAreaName = data.parentArea
 
         if (parentAreaName && !parentAreaName.isEmpty()) {
-            OrientVertex parent = getByIndex("name", parentAreaName).getAt(0)
+            OrientVertex parent = getVerticesByIndex(db, "name", parentAreaName).getAt(0)
             if (parent) {
                 parent.addEdge("HasArea", vertex)
             }
@@ -68,7 +74,7 @@ class AreaInterfacer extends VertexInterfacer {
 
         for (resourceName in resourcesNames) {
             if (String.isInstance(resourceName) && !resourceName.isEmpty()) {
-                OrientVertex device = getByIndex("name", resourceName, "Resource").getAt(0)
+                OrientVertex device = getVerticesByIndex(db, "networkId", resourceName, "Resource").getAt(0)
                 if (device) {
                     def numAreas = device.countEdges(Direction.IN, "HasResource")
 

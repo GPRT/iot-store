@@ -1,5 +1,6 @@
 package databaseInterfacer
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.exception.OValidationException
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
@@ -18,10 +19,17 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
     }
 
     // Helpers
-    abstract protected LinkedHashMap generateVertexProperties(HashMap data)
-    abstract protected void generateVertexRelations(OrientGraph graph, OrientVertex vertex, HashMap data)
+    abstract protected LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
+                                                              HashMap data,
+                                                              HashMap optionalData)
+    abstract protected void generateVertexRelations(ODatabaseDocumentTx db,
+                                                    OrientVertex vertex,
+                                                    HashMap data,
+                                                    HashMap optionalData)
 
-    protected final LinkedHashMap create(OrientGraph graph, HashMap data) {
+    protected final LinkedHashMap create(ODatabaseDocumentTx db,
+                                         HashMap data,
+                                         HashMap optionalData = [:]) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
@@ -29,21 +37,22 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             invalidVertexProperties()
 
         Long id = -1
+        OrientGraph graph = new OrientGraph(db)
         OrientVertex vertex = null
 
         try {
-            def properties = generateVertexProperties(data)
+            def properties = generateVertexProperties(db, data, optionalData)
 
             if (null in properties.values())
                 invalidVertexProperties()
 
             vertex = graph.addVertex("class:" + this.className, properties)
-            generateVertexRelations(graph, vertex, data)
+            generateVertexRelations(db, vertex, data, optionalData)
             graph.commit()
 
             id = vertex.identity.clusterPosition
 
-            return this.getVertexById(graph, id, this.getExpandedNames())
+            return this.getById(db, id, this.getExpandedNames(), className)
         } catch(OValidationException e) {
             invalidVertexProperties()
         } catch(ORecordDuplicatedException e) {
@@ -56,9 +65,10 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         }
     }
 
-    protected final LinkedHashMap delete(OrientGraph graph, Long id, String className=this.className) {
-        def clusterId = this.getClusterId(graph.getRawGraph(), className)
+    protected final LinkedHashMap delete(ODatabaseDocumentTx db, Long id, String className=this.className) {
+        def clusterId = this.getClusterId(db, className)
         def rid = new ORecordId(clusterId, id.toLong())
+        OrientGraph graph = new OrientGraph(db)
         OrientVertex vertex = graph.getVertex(rid)
 
         if (!vertex)
@@ -68,34 +78,34 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         return [:]
     }
 
-    protected final Iterable<LinkedHashMap> get(OrientGraph graph,
-                                                        Set fieldNames, Set filterFields=[], Set sortFields=[],
-                                                        int pageField=0, int pageLimitField=10,
-                                                        String className=this.className) {
-        def osql = super.generateQuery(fieldNames, filterFields, sortFields, pageField, pageLimitField, className)
+    protected final Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
+                                                HashMap params = [:],
+                                                String className = this.className) {
+        def results = super.getDocuments(db, params, className)
 
-        def query = new OSQLSynchQuery(osql)
-
-        return graph.command(query).execute().collect {
-            this.orientTransformer.fromOVertex(it)
+        return results.collect() {
+            this.orientTransformer.fromODocument(it)
         }
     }
 
-    protected final LinkedHashMap setById(OrientGraph graph,
-                                                Long id, HashMap data, String className=this.className) {
+    protected final LinkedHashMap setById(ODatabaseDocumentTx db,
+                                          Long id,
+                                          HashMap data,
+                                          String className=this.className) {
         if (!(this.getExpandedNames() == data.keySet()))
             invalidVertexProperties()
 
         if (data.isEmpty())
             invalidVertexProperties()
 
-        def clusterId = this.getClusterId(graph.getRawGraph(), className)
+        def clusterId = this.getClusterId(db, className)
         def rid = new ORecordId(clusterId, id)
 
         try {
+            OrientGraph graph = new OrientGraph(db)
             OrientVertex vertex = graph.getVertex(rid)
 
-            def properties = generateVertexProperties(data)
+            def properties = generateVertexProperties(db, data)
 
             if (null in properties.values())
                 invalidVertexProperties()
@@ -106,7 +116,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
                 graph.removeEdge(edge)
             }
 
-            generateVertexRelations(graph, vertex, data)
+            generateVertexRelations(db, vertex, data)
             graph.commit()
         } catch (ORecordDuplicatedException e) {
             duplicatedVertex()
@@ -114,32 +124,20 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertexNotFoundById(id)
         }
 
-        return this.getById(graph, rid.clusterPosition, this.getExpandedNames())
+        return this.getById(db, rid.clusterPosition, this.getExpandedNames(), className)
     }
 
-    protected final Iterable<LinkedHashMap> getById(OrientGraph graph,
-                                                          Long id, Set fieldNames, String className=this.className) {
-        def clusterId = this.getClusterId(graph.getRawGraph(), className)
-        def rid = new ORecordId(clusterId, id)
-        def vertex = this.get(graph, fieldNames, [].toSet(), [].toSet(), 0, 1, rid.toString())
+    protected final Iterable<LinkedHashMap> getById(ODatabaseDocumentTx db,
+                                                    Long id,
+                                                    Set fieldNames,
+                                                    String className=this.className) {
+        def vertex = this.getDocumentById(db, id, fieldNames, className)
 
         if (!vertex.getAt(0))
             vertexNotFoundById(id)
 
-        return vertex
-    }
-
-    protected final Iterable<LinkedHashMap> getByIndex(OrientGraph graph,
-                                                               String fieldName, String fieldValue,
-                                                               String className=this.className) {
-        def vertices = graph.getVertices(className + "." + fieldName, fieldValue)
-
-        if (!vertices.getAt(0))
-            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
-                    400,
-                    "No field named [$fieldName] was found with value [$fieldValue] in class [$className]!",
-                    "Check the body you sent")
-
-        return vertices
+        return vertex.collect {
+            this.orientTransformer.fromODocument(vertex)
+        }
     }
 }
