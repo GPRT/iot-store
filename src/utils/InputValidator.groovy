@@ -8,7 +8,7 @@ import groovy.json.JsonSlurper
 class InputValidator {
 
     static enum Granularity {
-        YEARS,MONTHS,DAYS,HOURS,MINUTES
+        YEARS,MONTHS,DAYS,HOURS,MINUTES,SAMPLES
     }
 
     static String validateQueryParams(fields, allowedQueryParams) {
