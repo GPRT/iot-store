@@ -5,9 +5,11 @@ import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
+import utils.Endpoints
 import utils.OrientTransformer
 
 abstract class ClassInterfacer {
@@ -26,10 +28,12 @@ abstract class ClassInterfacer {
     abstract protected LinkedHashMap create(ODatabaseDocumentTx db, HashMap data, HashMap optionalData)
     abstract protected LinkedHashMap delete(ODatabaseDocumentTx db, Long id, String className)
 
-    protected final Number getClusterId(ODatabaseDocumentTx db, String className) {
-        if (!this.defaultClusterId)
-            this.defaultClusterId = db.getClusterIdByName(this.className)
+    def setDefaultClusterId(ODatabaseDocumentTx db) {
+        this.defaultClusterId = db.getClusterIdByName(this.className)
+        Endpoints.addCluster(this.defaultClusterId, this.className)
+    }
 
+    protected final int getClusterId(ODatabaseDocumentTx db, String className) {
         if (className == this.className)
             return this.defaultClusterId
 
@@ -126,23 +130,42 @@ abstract class ClassInterfacer {
         return db.command(query).execute()
     }
 
-    protected final Iterable<ODocument> getDocumentById(ODatabaseDocumentTx db,
-                                                         Long id,
-                                                         Set fieldNames,
-                                                         String className=this.className) {
-        def clusterId = this.getClusterId(db, className)
-        def rid = new ORecordId(clusterId, id)
+    protected final Iterable<ODocument> getDocumentByRid(ODatabaseDocumentTx db,
+                                                         ORecordId rid,
+                                                         Set fieldNames) {
         def osql = generateQuery(fieldNames, [].toSet(), [].toSet(), 0, 10, rid.toString())
         def query = new OSQLSynchQuery(osql)
 
         return db.command(query).execute()
     }
 
+    protected final OrientVertex getVertexByRid(ODatabaseDocumentTx db,
+                                                ORecordId rid) {
+        OrientGraphNoTx graph = new OrientGraphNoTx(db)
+        return graph.getVertex(rid)
+    }
+
+    protected final OrientVertex getVertexByUrl(ODatabaseDocumentTx db,
+                                                String url) {
+        ORecordId rid = null
+
+        try {
+            rid = Endpoints.urlToRid(new URL(url))
+        } catch (IllegalFormatException e) {
+            throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                    400,
+                    "[" + url + "] is not a valid id!",
+                    "Choose an id that already exists")
+        }
+
+        return getVertexByRid(db, rid)
+    }
+
     protected final Iterable<OrientVertex> getVerticesByIndex(ODatabaseDocumentTx db,
                                                               String fieldName,
                                                               String fieldValue,
                                                               String className=this.className) {
-        OrientGraph graph = new OrientGraph(db)
+        OrientGraphNoTx graph = new OrientGraphNoTx(db)
         def vertices = graph.getVertices(className + "." + fieldName, fieldValue)
 
         if (!vertices.getAt(0))

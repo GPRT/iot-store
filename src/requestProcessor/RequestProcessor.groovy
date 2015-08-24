@@ -10,6 +10,7 @@ import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import spark.Request
 import spark.Response
+import utils.Endpoints
 import utils.InputValidator
 
 class RequestProcessor {
@@ -19,6 +20,7 @@ class RequestProcessor {
     RequestProcessor(OPartitionedDatabasePoolFactory factory, ClassInterfacer databaseInterfacer) {
         this.factory = factory
         this.databaseInterfacer = databaseInterfacer
+        this.databaseInterfacer.setDefaultClusterId(getDatabase("support", "support"))
     }
 
     protected OrientGraph getGraph(String login, String password) {
@@ -32,7 +34,7 @@ class RequestProcessor {
         }
     }
 
-    protected ODatabaseDocumentTx getDatabase(String login="root", String password="123456") {
+    protected ODatabaseDocumentTx getDatabase(String login, String password) {
         try {
             return this.factory.get("remote:localhost/iot", login, password).acquire()
         } catch (OSecurityAccessException e) {

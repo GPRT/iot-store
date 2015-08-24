@@ -11,7 +11,7 @@ class GroupInterfacer extends VertexInterfacer {
         super("Group",
                 ["name": "name",
                  "domainData": "domainData"],
-                ["devices": "ifnull(out(\"GroupsResource\").networkId,[]) as devices"])
+                ["devices": "ifnull(out(\"GroupsResource\"),[]) as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -45,10 +45,10 @@ class GroupInterfacer extends VertexInterfacer {
     protected final LinkedHashMap generateVertexProperties(ODatabaseDocumentTx db,
                                                            HashMap data,
                                                            HashMap optionalData = [:]) {
-        def areaName = data.name
+        def groupName = data.name
         def domainData =  data.domainData
 
-        return ["name": areaName,
+        return ["name": groupName,
                 "domainData": domainData]
     }
 
@@ -56,17 +56,23 @@ class GroupInterfacer extends VertexInterfacer {
                                            OrientVertex vertex,
                                            HashMap data,
                                            HashMap optionalData = [:]) {
-        def deviceNames = data.devices.unique()
+        def deviceUrls = data.devices.unique()
 
-        for (deviceName in deviceNames) {
-            if (String.isInstance(deviceName) && !deviceName.isEmpty()) {
-                OrientVertex device = getVerticesByIndex(db, "networkId", deviceName, "Resource").getAt(0)
+        for (deviceUrl in deviceUrls) {
+            if (String.isInstance(deviceUrl) && !deviceUrl.isEmpty()) {
+                OrientVertex device = getVertexByUrl(db, deviceUrl)
                 if (device) {
+                    if (device.getLabel() != 'Resource')
+                        throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                                400,
+                                "[" + deviceUrl + "] is not a valid id for a device!",
+                                "Choose an id for a device instead")
+
                     vertex.addEdge("GroupsResource", device)
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,
-                            "Device [" + deviceName + "] was not found!",
+                            "Device [" + deviceUrl + "] was not found!",
                             "The device does not exist")
                 }
             }

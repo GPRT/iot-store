@@ -71,7 +71,7 @@ class OrientTransformer {
                 value = fromODocument(field)
                 break
             case ORecordId:
-                value = field.clusterPosition
+                value = Endpoints.ridToUrl(field)
                 break
             case ORecord:
                 value = fromORecord(field)

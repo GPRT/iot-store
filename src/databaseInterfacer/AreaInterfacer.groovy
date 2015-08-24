@@ -1,19 +1,22 @@
 package databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.orientechnologies.orient.core.exception.OValidationException
+import com.orientechnologies.orient.core.id.ORecordId
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
+import utils.Endpoints
 
 class AreaInterfacer extends VertexInterfacer {
     def AreaInterfacer() {
         super("Area",
                 ["name": "name",
                  "domainData": "domainData"],
-                ["parentArea": "ifnull(in(\"HasArea\").name[0],\"\") as parentArea",
-                 "devices": "ifnull(out(\"HasResource\").networkId,[]) as devices"])
+                ["parentArea": "ifnull(in(\"HasArea\")[0],\"\") as parentArea",
+                 "devices": "ifnull(out(\"HasResource\"),[]) as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -58,37 +61,51 @@ class AreaInterfacer extends VertexInterfacer {
                                            OrientVertex vertex,
                                            HashMap data,
                                            HashMap optionalData = [:]) {
-        def parentAreaName = data.parentArea
+        def parentAreaUrl = data.parentArea
 
-        if (parentAreaName && !parentAreaName.isEmpty()) {
-            OrientVertex parent = getVerticesByIndex(db, "name", parentAreaName).getAt(0)
+        if (parentAreaUrl && !parentAreaUrl.isEmpty()) {
+            OrientVertex parent = getVertexByUrl(db, parentAreaUrl)
+
             if (parent) {
+                if (parent.getLabel() != 'Area')
+                    throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                            400,
+                            "[" + parentAreaUrl + "] is not a valid id for an area!",
+                            "Choose an id for an area instead")
+
                 parent.addEdge("HasArea", vertex)
             }
             else {
-                vertexNotFoundByIndex(parentAreaName)
+                vertexNotFoundById(rid.clusterPosition)
             }
         }
 
-        def resourcesNames = data.devices.unique()
+        def resourceUrls = data.devices.unique()
 
-        for (resourceName in resourcesNames) {
-            if (String.isInstance(resourceName) && !resourceName.isEmpty()) {
-                OrientVertex device = getVerticesByIndex(db, "networkId", resourceName, "Resource").getAt(0)
+        for (resourceUrl in resourceUrls) {
+            if (String.isInstance(resourceUrl) && !resourceUrl.isEmpty()) {
+                OrientVertex device = getVertexByUrl(db, resourceUrl)
+
                 if (device) {
                     def numAreas = device.countEdges(Direction.IN, "HasResource")
 
                     if (numAreas > 0)
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                                 400,
-                                "Device [" + resourceName + "] is already part of an area!",
+                                "Device [" + resourceUrl + "] is already part of an area!",
                                 "Remove the device from the area in question")
+
+                    if (device.getLabel() != 'Resource')
+                        throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                                400,
+                                "[" + resourceUrl + "] is not a valid id for a device!",
+                                "Choose an id for a device instead")
 
                     vertex.addEdge("HasResource", device)
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,
-                            "Device [" + resourceName + "] was not found!",
+                            "Device [" + resourceUrl + "] was not found!",
                             "The device does not exist")
                 }
             }
