@@ -7,6 +7,7 @@ import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
@@ -37,7 +38,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             invalidVertexProperties()
 
         Long id = -1
-        OrientGraph graph = new OrientGraph(db)
+        OrientGraphNoTx graph = new OrientGraphNoTx(db)
         OrientVertex vertex = null
 
         try {
@@ -49,10 +50,9 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertex = graph.addVertex("class:" + this.className, properties)
             generateVertexRelations(db, vertex, data, optionalData)
             graph.commit()
-
-            id = vertex.identity.clusterPosition
-
-            return this.getById(db, id, this.getExpandedNames(), className)
+            return this.getDocumentByRid(db, vertex.getIdentity()).collect() {
+                this.orientTransformer.fromODocument(it)
+            }
         } catch(OValidationException e) {
             invalidVertexProperties()
         } catch(ORecordDuplicatedException e) {
@@ -105,6 +105,9 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             OrientGraph graph = new OrientGraph(db)
             OrientVertex vertex = graph.getVertex(rid)
 
+            if (!vertex)
+                vertexNotFoundById(id)
+
             def properties = generateVertexProperties(db, data)
 
             if (null in properties.values())
@@ -124,14 +127,19 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertexNotFoundById(id)
         }
 
-        return this.getById(db, rid.clusterPosition, this.getExpandedNames(), className)
+        return this.getDocumentByRid(db, rid).collect() {
+            this.orientTransformer.fromODocument(it)
+        }
     }
 
     protected final Iterable<LinkedHashMap> getById(ODatabaseDocumentTx db,
                                                     Long id,
                                                     Set fieldNames,
                                                     String className=this.className) {
-        def vertex = this.getDocumentById(db, id, fieldNames, className)
+        def clusterId = this.getClusterId(db, className)
+        def rid = new ORecordId(clusterId, id)
+
+        def vertex = this.getDocumentByRid(db, rid, fieldNames)
 
         if (!vertex.getAt(0))
             vertexNotFoundById(id)
