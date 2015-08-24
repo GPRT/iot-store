@@ -3,6 +3,8 @@ package scripts
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.orientechnologies.orient.core.metadata.schema.OSchema
 import com.orientechnologies.orient.core.metadata.schema.OType
+import com.orientechnologies.orient.core.metadata.security.OSecurity
+import com.orientechnologies.orient.core.metadata.security.OUser
 import com.tinkerpop.blueprints.Parameter
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType
@@ -13,6 +15,13 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType
 OrientGraphFactory factory = new OrientGraphFactory("remote:localhost/iot").setupPool(1, 10)
 
 OrientGraphNoTx graph = factory.getNoTx()
+
+OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
+sm.createUser("support", "support", sm.getRole("reader"))
+sm.createUser("test", "123", sm.getRole("writer"), sm.getRole("reader"))
+sm.createUser("ufpe", "123", sm.getRole("writer"), sm.getRole("reader"))
+sm.createUser("ufam", "123", sm.getRole("writer"), sm.getRole("reader"))
+sm.createUser("fit", "123", sm.getRole("writer"), sm.getRole("reader"))
 
 try {
     OSchema schema = graph.getRawGraph().getMetadata().getSchema()
