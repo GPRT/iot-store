@@ -13,7 +13,7 @@ import java.util.Date
 
 class MeasurementInterfacer extends DocumentInterfacer {
     enum Granularity {
-        YEARS, MONTHS, DAYS, HOURS, MINUTES
+        YEARS, MONTHS, DAYS, HOURS, MINUTES, SAMPLES
     }
 
     def MeasurementInterfacer() {
@@ -38,7 +38,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 "The measurement does not exist")
     }
 
-     protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
+    protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                           Map params = [:],
                                           Map optionalParams = [:],
                                           String className = this.className) {
@@ -124,12 +124,16 @@ class MeasurementInterfacer extends DocumentInterfacer {
                         if (granularityValue >= Granularity.MINUTES) {
                             def minutes = findSubSet(hours,
                                     begin.minutes, end.minutes, 'minute', 59)
-                            minutes.each {
-                                min ->
-                                    min.field('sample').each {
-                                        results.add(it)
-                                    }
+                            if (granularityValue >= Granularity.SAMPLES) {
+                                minutes.each {
+                                    min ->
+                                        min.field('sample').each {
+                                            results.add(it)
+                                        }
+                                }
                             }
+                            else
+                                results = minutes
                         } else
                             results = hours
                     } else
@@ -139,10 +143,29 @@ class MeasurementInterfacer extends DocumentInterfacer {
             } else
                 results = years
 
-            results.collect {
-                def result = this.orientTransformer.fromODocument(it)
-                result.put('measurementVariable', it.field('measurementVariable').field('name'))
-                result
+            if (granularityValue > Granularity.MINUTES) {
+                results.collect {
+                    def result = this.orientTransformer.fromODocument(it)
+                    result.put('measurementVariable', it.field('measurementVariable').field('name'))
+                    result
+                }
+            }
+            else{
+                results.collect {
+                    result ->
+                        def resultMap = [sum:[:],
+                                         mean:[:],
+                                         timestamp:result.field('log').field('timestamp')]
+
+                        ['sum','mean'].collect {
+                            result.field('log').field(it).collect {
+                                key,value ->
+                                    resultMap.getAt(it).put(key,
+                                            this.orientTransformer.fromODocument(value.getRecord()))
+                            }
+                        }
+                        resultMap
+                }
             }
         }
         finally {
@@ -202,70 +225,56 @@ class MeasurementInterfacer extends DocumentInterfacer {
                     "The device does not exist")
         }
 
-        def measurementsRecord = parent.getProperty('measurements').getRecord()
-        def yearMap = measurementsRecord.field('year')
-        def yearRecord = yearMap.getAt(date.year + 1900)
+        def initiateAggregationNode = {
+            ODocument newRecord, String mapName, newDataStructure ->
+                def newLog = new ODocument('Log')
+                newLog.field('sum', new LinkedHashMap())
+                newLog.field('mean', new LinkedHashMap())
+                newLog.field('timestamp', date)
+                newLog.save()
+                newRecord.field(mapName, newDataStructure)
+                newRecord.field('log',newLog)
+                newRecord.save()
+        }
+
+        def returnValidRecord = {
+            lastRecord, currentGranularity, nextGranularity, currentDate ->
+
+            def currentMap = lastRecord.field(currentGranularity.toLowerCase())
+            def currentRecord = currentMap.getAt(currentDate)
+
+            if (currentRecord == null) {
+                def newRecord = new ODocument(currentGranularity)
+                if (currentGranularity == 'Minute')
+                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new ArrayList<ODocument>())
+                else
+                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new LinkedHashMap())
+
+                def lastMeasurement = currentMap.sort( {a, b -> b.key <=> a.key} ).find( {it.key.toInteger() < currentDate} )
+                if (lastMeasurement) {
+                    newRecord.field('lastMeasurement', lastMeasurement.getValue())
+                    newRecord.save()
+                }
+                currentMap.put(currentDate, newRecord)
+                currentRecord = newRecord
+            }
+            currentRecord
+        }
 
         db.begin()
-        if (yearRecord == null) {
-            def newYearRecord = new ODocument('Year')
-            newYearRecord.field('month', new LinkedHashMap())
-            newYearRecord.save()
-            measurementsRecord.field('year').put(date.year + 1900, newYearRecord)
-            yearRecord = newYearRecord
-        }
+        def measurementsRecord = parent.getProperty('measurements').getRecord()
+        def yearRecord = returnValidRecord(measurementsRecord,'Year','Month',date.year+1900)
+        def monthRecord = returnValidRecord(yearRecord,'Month','Day',date.month+1)
+        def dayRecord = returnValidRecord(monthRecord,'Day','Hour',date.date)
+        def hourRecord = returnValidRecord(dayRecord,'Hour','Minute',date.hours)
+        def minuteRecord = returnValidRecord(hourRecord,'Minute','Sample',date.minutes)
 
-        def monthMap = yearRecord.field('month')
-        def monthRecord = monthMap.getAt(date.month + 1)
-
-        if (monthRecord == null) {
-            def newMonthRecord = new ODocument('Month')
-            newMonthRecord.field('day', new LinkedHashMap())
-            newMonthRecord.save()
-            monthMap.put(date.month + 1, newMonthRecord)
-            monthRecord = newMonthRecord
-        }
-
-        def dayMap = monthRecord.field('day')
-        def dayRecord = dayMap.getAt(date.date)
-
-        if (dayRecord == null) {
-            def newDayRecord = new ODocument('Day')
-            newDayRecord.field('hour', new LinkedHashMap())
-            newDayRecord.save()
-            dayMap.put(date.date, newDayRecord)
-            dayRecord = newDayRecord
-        }
-
-        def hourMap = dayRecord.field('hour')
-        def hourRecord = hourMap.getAt(date.hours)
-
-        if (hourRecord == null) {
-            def newHourRecord = new ODocument('Hour')
-            newHourRecord.field('minute', new LinkedHashMap())
-            newHourRecord.save()
-            hourMap.put(date.hours, newHourRecord)
-            hourRecord = newHourRecord
-        }
-
-        def minuteMap = hourRecord.field('minute')
-        def minuteRecord = minuteMap.getAt(date.minutes)
-
-        if (minuteRecord == null) {
-            def newMinuteRecord = new ODocument('Minute')
-            newMinuteRecord.field('sample', new ArrayList<ODocument>())
-            newMinuteRecord.save()
-            minuteMap.put(date.minutes, newMinuteRecord)
-            minuteRecord = newMinuteRecord
-        }
         minuteRecord.field('sample').add(record)
-        minuteRecord.save()
-        hourRecord.save()
-        dayRecord.save()
-        monthRecord.save()
-        yearRecord.save()
-        measurementsRecord.save()
 
+        [minuteRecord,hourRecord,dayRecord,monthRecord,
+         yearRecord,measurementsRecord].collect {
+            it.save()
+        }
         db.commit()
     }
 }
