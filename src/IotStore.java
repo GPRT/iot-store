@@ -28,7 +28,7 @@ public class IotStore {
 
         Endpoints.setMainUrl("http://192.168.0.71:4567");
         Endpoints.addClass("area", "areas");
-        Endpoints.addClass("variable", "variables");
+        Endpoints.addClass("measurementvariable", "variables");
         Endpoints.addClass("resource", "devices");
         Endpoints.addClass("group", "groups");
         Endpoints.addClass("simulation", "simulations");
@@ -40,7 +40,7 @@ public class IotStore {
         delete(areasPath + "/:id", "application/json", areaRequestProcessor::delete, jsonTransformer);
         post(areasPath, "application/json", areaRequestProcessor::create, jsonTransformer);
 
-        String variablesPath = Endpoints.getPath("variable");
+        String variablesPath = Endpoints.getPath("measurementvariable");
         get(variablesPath, "application/json", variableRequestProcessor::get, jsonTransformer);
         get(variablesPath + "/:id", "application/json", variableRequestProcessor::getById, jsonTransformer);
         put(variablesPath + "/:id", "application/json", variableRequestProcessor::setById, jsonTransformer);
