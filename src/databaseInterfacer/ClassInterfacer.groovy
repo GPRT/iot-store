@@ -132,7 +132,7 @@ abstract class ClassInterfacer {
 
     protected final Iterable<ODocument> getDocumentByRid(ODatabaseDocumentTx db,
                                                          ORecordId rid,
-                                                         Set fieldNames) {
+                                                         Set fieldNames=this.getExpandedNames()) {
         def osql = generateQuery(fieldNames, [].toSet(), [].toSet(), 0, 10, rid.toString())
         def query = new OSQLSynchQuery(osql)
 
