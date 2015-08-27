@@ -113,17 +113,13 @@ class MeasurementInterfacer extends DocumentInterfacer {
             }
 
             if (granularityValue >= Granularity.MONTHS) {
-                def months = findSubSet(years,
-                        begin.month + 1, end.month + 1, 'month', 12)
+                def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12)
                 if (granularityValue >= Granularity.DAYS) {
-                    def days = findSubSet(months,
-                            begin.date, end.date, 'day', 31)
+                    def days = findSubSet(months, begin.date, end.date, 'day', 31)
                     if (granularityValue >= Granularity.HOURS) {
-                        def hours = findSubSet(days,
-                                begin.hours, end.hours, 'hour', 23)
+                        def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23)
                         if (granularityValue >= Granularity.MINUTES) {
-                            def minutes = findSubSet(hours,
-                                    begin.minutes, end.minutes, 'minute', 59)
+                            def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59)
                             if (granularityValue >= Granularity.SAMPLES) {
                                 minutes.each {
                                     min ->
@@ -213,11 +209,13 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def timestamp = data.timestamp
         def date = new Date(timestamp)
         def networkId = optionalData.networkId
-        def parent = null
+        def leftBranch = []
+        def rightBranch = []
 
         def clusterId = this.getClusterId(db, 'Resource')
         def rid = new ORecordId(clusterId, networkId.toLong())
-        parent = graph.getVertex(rid)
+        def parent = graph.getVertex(rid)
+
         if (!parent) {
             throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                     404,
@@ -232,6 +230,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 newLog.field('mean', new LinkedHashMap())
                 newLog.field('timestamp', date)
                 newLog.save()
+                db.commit()
                 newRecord.field(mapName, newDataStructure)
                 newRecord.field('log',newLog)
                 newRecord.save()
@@ -240,39 +239,66 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def returnValidRecord = {
             lastRecord, currentGranularity, nextGranularity, currentDate ->
 
-            def currentMap = lastRecord.field(currentGranularity.toLowerCase())
-            def currentRecord = currentMap.getAt(currentDate)
+                def currentMap = lastRecord.field(currentGranularity.toLowerCase())
+                def currentRecord = currentMap.getAt(currentDate)
 
-            if (currentRecord == null) {
-                def newRecord = new ODocument(currentGranularity)
-                if (currentGranularity == 'Minute')
-                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new ArrayList<ODocument>())
-                else
-                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new LinkedHashMap())
+                db.begin()
+                if (currentRecord == null) {
+                    def newRecord = new ODocument(currentGranularity)
+                    if (currentGranularity == 'Minute')
+                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new ArrayList<ODocument>())
+                    else
+                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new LinkedHashMap())
 
-                def lastMeasurement = currentMap.sort( {a, b -> b.key <=> a.key} ).find( {it.key.toInteger() < currentDate} )
-                if (lastMeasurement) {
-                    newRecord.field('lastMeasurement', lastMeasurement.getValue())
+                    if (rightBranch.size()==0) {
+                        def lastMeasurement = currentMap
+                                .sort({ a, b -> b.key <=> a.key })
+                                .find({ it.key.toInteger() < currentDate })
+                        if (lastMeasurement)
+                            rightBranch.add(lastMeasurement.value.getRecord())
+                    }
+                    currentMap.put(currentDate, newRecord)
+                    currentRecord = newRecord
                     newRecord.save()
+                    leftBranch.add(newRecord)
                 }
-                currentMap.put(currentDate, newRecord)
-                currentRecord = newRecord
-            }
-            currentRecord
+                db.commit()
+                currentRecord
         }
-
-        db.begin()
         def measurementsRecord = parent.getProperty('measurements').getRecord()
         def yearRecord = returnValidRecord(measurementsRecord,'Year','Month',date.year+1900)
         def monthRecord = returnValidRecord(yearRecord,'Month','Day',date.month+1)
         def dayRecord = returnValidRecord(monthRecord,'Day','Hour',date.date)
         def hourRecord = returnValidRecord(dayRecord,'Hour','Minute',date.hours)
         def minuteRecord = returnValidRecord(hourRecord,'Minute','Sample',date.minutes)
-
         minuteRecord.field('sample').add(record)
 
-        [minuteRecord,hourRecord,dayRecord,monthRecord,
-         yearRecord,measurementsRecord].collect {
+        if (rightBranch.size()>0) {
+            leftBranch = leftBranch.reverse()
+            def dates = ['year','month','day','hour','minute']
+            def rightDate = rightBranch.first()
+            def granularity
+
+            if (leftBranch.size()>1) {
+                (0..(leftBranch.size() - 2)).each {
+                    granularity = rightDate.toMap().keySet().find({ key -> key in dates })
+                    rightDate = rightDate.field(granularity)
+                            .sort({ a, b -> b.key <=> a.key })
+                            .entrySet().first().value.getRecord()
+                    rightBranch.add(rightDate)
+                }
+            }
+
+            rightBranch = rightBranch.reverse()
+            leftBranch.eachWithIndex {
+                leftMeasurement ,i ->
+                    leftMeasurement.field('lastMeasurement',rightBranch[i])
+                    leftMeasurement.save()
+            }
+        }
+        [minuteRecord,hourRecord,
+         dayRecord,monthRecord,
+         yearRecord,measurementsRecord].each {
             it.save()
         }
         db.commit()
