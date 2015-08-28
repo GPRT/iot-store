@@ -35,7 +35,7 @@ class InputValidator {
     static def processAuthentication(String encoded) {
         if (encoded == null)
             throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
-                    400,
+                    401,
                     "Credentials were not provided!",
                     "You should provide your authentication as basic auth")
 
