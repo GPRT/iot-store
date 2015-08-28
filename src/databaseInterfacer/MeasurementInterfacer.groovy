@@ -1,10 +1,7 @@
 package databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
-import com.orientechnologies.orient.core.record.ORecord
-import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
-import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
