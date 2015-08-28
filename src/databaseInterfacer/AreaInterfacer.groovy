@@ -3,6 +3,8 @@ package databaseInterfacer
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.exception.OValidationException
 import com.orientechnologies.orient.core.id.ORecordId
+import com.orientechnologies.orient.core.record.ORecord
+import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
@@ -110,5 +112,27 @@ class AreaInterfacer extends VertexInterfacer {
                 }
             }
         }
+    }
+
+    protected final LinkedHashMap recordToMap(ODatabaseDocumentTx db, ORecord record) {
+        def result = this.orientTransformer.fromODocument(record)
+
+        if (result.containsKey('devices')) {
+            result['inheritedAreas'] = []
+            result['inheritedDevices'] = []
+
+            def rid = record.field('id').getIdentity()
+            def osql = "select unionall(area) as areas, unionall(devices) as devices from " +
+                    "(select @this as area, out('HasResource') as devices from " +
+                    "(traverse out('HasArea') from (select out('HasArea') from ${rid})))"
+            db.command(new OSQLSynchQuery(osql)).execute().collect {
+                def records = this.orientTransformer.fromODocument(it)
+
+                result['inheritedAreas'] = records['areas']
+                result['inheritedDevices'] = records['devices']
+            }
+        }
+
+        return result
     }
 }
