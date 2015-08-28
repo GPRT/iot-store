@@ -145,9 +145,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
             if (granularityValue > Granularity.MINUTES) {
                 results.collect {
-                    def result = this.orientTransformer.fromODocument(it)
-                    result.put('measurementVariable', it.field('measurementVariable').field('name'))
-                    result
+                    this.orientTransformer.fromODocument(it)
                 }
             }
             else{
