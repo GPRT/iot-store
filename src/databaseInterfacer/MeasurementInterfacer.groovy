@@ -21,6 +21,13 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 [:])
     }
 
+    void vertexNotFoundById(Long id) {
+        throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
+                404,
+                "Measurement Variable [" + id + "] was not found!",
+                "The variable does not exist")
+    }
+
     void invalidDocumentProperties() {
         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                 400,
@@ -172,19 +179,28 @@ class MeasurementInterfacer extends DocumentInterfacer {
         OrientGraph graph = new OrientGraph(db)
         def timestamp = data.timestamp
         def value = data.value
-        def measurementVariable = data.measurementVariable
-        def measurementVariableVertex = null
+        def measurementVariableUrl = data.measurementVariable
+        def measurementVariableVertex
+
+        if (measurementVariableUrl && !measurementVariableUrl.isEmpty()) {
+            measurementVariableVertex = getVertexByUrl(db, measurementVariableUrl)
+
+            if (measurementVariableVertex) {
+                if (measurementVariableVertex.getLabel() != 'MeasurementVariable')
+                    throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
+                            400,
+                            "[" + measurementVariableUrl + "] is not a valid"
+                                    +" id for a measurement variable!",
+                            "Choose an id for an area instead")
+
+            }
+            else {
+                vertexNotFoundById(rid.clusterPosition)
+            }
+        }
 
         try {
-            measurementVariableVertex = graph.getVertices('MeasurementVariable.name',
-                    measurementVariable).last()
             timestamp = new Date(timestamp)
-        }
-        catch (NoSuchElementException err1) {
-            throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
-                    404,
-                    "Variable [" + measurementVariable + "] was not found!",
-                    "The area does not exist")
         }
         catch (IllegalArgumentException err2) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
@@ -194,7 +210,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         return ["timestamp"          : timestamp,
-                "measurementVariable": measurementVariableVertex.getId(),
+                "measurementVariable": measurementVariableVertex.getIdentity(),
                 "value"              : value]
     }
 
