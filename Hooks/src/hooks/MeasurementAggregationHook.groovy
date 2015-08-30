@@ -20,6 +20,7 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
 
     public void onRecordAfterUpdate( ODocument document ) {
         def className = document.getClassName()
+
         if(document.field('lastMeasurement')) {
             def lastMeasurement = document.field('lastMeasurement')
             def lastLog = lastMeasurement.field('log')
@@ -32,23 +33,23 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                 measurementVariables = lastMeasurement.field('sample').collect {
                     sample ->
                         def variable = sample.field('measurementVariable')
-                        def variableName = variable.field('name')
-                        if(newAggregation.getAt(variableName).is(null))
-                            newAggregation.put(variableName,[])
-                        newAggregation.getAt(variableName).add(sample.field('value'))
+                        def variableId = variable.getIdentity().toString()
+                        if(newAggregation.getAt(variableId).is(null))
+                            newAggregation.put(variableId,[])
+                        newAggregation.getAt(variableId).add(sample.field('value'))
                         variable
                 }
                 measurementVariables.each{
                     variable ->
-                        def variableName = variable.field('name')
+                        def variableId = variable.getIdentity().toString()
                         def newSum = new ODocument('Sample')
-                        newSum.field('value', newAggregation[variable.field('name')].sum())
+                        newSum.field('value', newAggregation[variableId].sum())
                         newSum.save()
-                        lastLogSum.put(variableName,newSum)
+                        lastLogSum.put(variableId,newSum)
                         def newMean = new ODocument('Sample')
-                        newMean.field('value', this.mean(newAggregation[variable.field('name')]))
+                        newMean.field('value', this.mean(newAggregation[variableId]))
                         newMean.save()
-                        lastLogMean.put(variableName,newMean)
+                        lastLogMean.put(variableId, newMean)
                 }
             }
             else {
