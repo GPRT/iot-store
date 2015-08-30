@@ -1,11 +1,13 @@
 package databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.orientechnologies.orient.core.record.ORecord
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.id.ORecordId
+import utils.Endpoints
 import java.util.Date
 
 class MeasurementInterfacer extends DocumentInterfacer {
@@ -78,27 +80,39 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 def range = new ArrayList<ODocument>()
                 if (measurementSet.size() > 1) {
                     (beginRange..rangeSize).collect {
-                        if (measurementSet.first().field(granularityLevel).getAt(it))
-                            range.add(measurementSet.first().field(granularityLevel).getAt(it))
+                        try {
+                            if (measurementSet.first().field(granularityLevel).getAt(it))
+                                range.add(measurementSet.first().field(granularityLevel).getAt(it))
+                        }
+                        catch (NullPointerException e) { }
                     }
                     if (measurementSet.size() > 2) {
                         (1..measurementSet.size() - 2).collect {
                             setIter ->
                                 (0..rangeSize).collect {
-                                    if (measurementSet[setIter].field(granularityLevel).getAt(it))
-                                        range.add(measurementSet[setIter].field(granularityLevel).getAt(it))
+                                    try {
+                                        if (measurementSet[setIter].field(granularityLevel).getAt(it))
+                                            range.add(measurementSet[setIter].field(granularityLevel).getAt(it))
+                                    }
+                                    catch (NullPointerException e) { }
                                 }
                         }
                     }
                     (1..endRange).collect {
-                        if (measurementSet.last().field(granularityLevel).getAt(it))
-                            range.add(measurementSet.last().field(granularityLevel).getAt(it))
+                        try {
+                            if (measurementSet.last().field(granularityLevel).getAt(it))
+                                range.add(measurementSet.last().field(granularityLevel).getAt(it))
+                        }
+                        catch(NullPointerException e) { }
                     }
                 } else {
                     (beginRange..endRange).collect {
-                        if (measurementSet.first().field(granularityLevel).getAt(it)) {
-                            range.add(measurementSet.first().field(granularityLevel).getAt(it))
+                        try {
+                            if (measurementSet.first().field(granularityLevel).getAt(it)) {
+                                range.add(measurementSet.first().field(granularityLevel).getAt(it))
+                            }
                         }
+                        catch(NullPointerException e) { }
                     }
                 }
                 return range
@@ -156,14 +170,19 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                          timestamp:result.field('log').field('timestamp')]
 
                         ['sum','mean'].collect {
+                            def variables = [:]
                             result.field('log').field(it).collect {
                                 key,value ->
-                                    resultMap.getAt(it).put(key,
+                                    if(!variables.getAt(key))
+                                        variables.put(key,Endpoints.ridToUrl(new ORecordId(key)))
+                                    resultMap.getAt(it).put(
+                                            variables.getAt(key),
                                             this.orientTransformer.fromODocument(value.getRecord()))
                             }
                         }
-                        resultMap
-                }
+                        if (resultMap.sum)
+                            resultMap
+                } - [null]
             }
         }
         finally {
