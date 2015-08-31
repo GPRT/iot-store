@@ -3,6 +3,7 @@ package databaseInterfacer
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.exception.OValidationException
 import com.orientechnologies.orient.core.id.ORecordId
+import com.orientechnologies.orient.core.record.ORecord
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 import com.tinkerpop.blueprints.Direction
@@ -28,6 +29,10 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
                                                     HashMap data,
                                                     HashMap optionalData)
 
+    protected LinkedHashMap recordToMap(ODatabaseDocumentTx db, ORecord record) {
+        return this.orientTransformer.fromODocument(record)
+    }
+
     protected final LinkedHashMap create(ODatabaseDocumentTx db,
                                          HashMap data,
                                          HashMap optionalData = [:]) {
@@ -50,8 +55,8 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertex = graph.addVertex("class:" + this.className, properties)
             generateVertexRelations(db, vertex, data, optionalData)
             graph.commit()
-            return this.getDocumentByRid(db, vertex.getIdentity()).collect() {
-                this.orientTransformer.fromODocument(it)
+            return this.getDocumentByRid(db, vertex.getIdentity()).collect {
+                return recordToMap(db, it)
             }
         } catch(OValidationException e) {
             invalidVertexProperties()
@@ -83,8 +88,8 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
                                                 String className = this.className) {
         def results = super.getDocuments(db, params, className)
 
-        return results.collect() {
-            this.orientTransformer.fromODocument(it)
+        return results.collect {
+            return recordToMap(db, it)
         }
     }
 
@@ -127,8 +132,8 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertexNotFoundById(id)
         }
 
-        return this.getDocumentByRid(db, rid).collect() {
-            this.orientTransformer.fromODocument(it)
+        return this.getDocumentByRid(db, rid).collect {
+            return recordToMap(db, it)
         }
     }
 
@@ -145,7 +150,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
             vertexNotFoundById(id)
 
         return vertex.collect {
-            this.orientTransformer.fromODocument(vertex)
+            return recordToMap(db, it)
         }
     }
 }

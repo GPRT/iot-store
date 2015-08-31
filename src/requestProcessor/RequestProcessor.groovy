@@ -28,7 +28,7 @@ class RequestProcessor {
             return new OrientGraph(this.getDatabase(login, password))
         } catch (OSecurityAccessException e) {
             throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
-                    400,
+                    401,
                     "The basic auth failed!",
                     "Check if your login and password are correct")
         }
@@ -39,7 +39,7 @@ class RequestProcessor {
             return this.factory.get("remote:localhost/iot", login, password).acquire()
         } catch (OSecurityAccessException e) {
             throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
-                    400,
+                    401,
                     "The basic auth failed!",
                     "Check if your login and password are correct")
         }
@@ -91,8 +91,8 @@ class RequestProcessor {
     }
 
     LinkedHashMap setById(Request req, Response res) {
-        res.type ( "application/json" );
-        res.status(201);
+        res.type("application/json")
+        res.status(201)
 
         String authentication = req.headers("Authorization");
         def (login, pass) = InputValidator.processAuthentication(authentication)
@@ -115,7 +115,7 @@ class RequestProcessor {
     }
 
     LinkedHashMap getById(Request req, Response res) {
-        res.type("application/json");
+        res.type("application/json")
 
         String authentication = req.headers("Authorization");
         def (login, pass) = InputValidator.processAuthentication(authentication)
@@ -147,8 +147,8 @@ class RequestProcessor {
     }
 
     LinkedHashMap delete(Request req, Response res) {
-        res.type("application/json");
-        res.status(204);
+        res.type("application/json")
+        res.status(204)
 
         String authentication = req.headers("Authorization");
         def (login, pass) = InputValidator.processAuthentication(authentication)
@@ -168,8 +168,8 @@ class RequestProcessor {
     }
 
     LinkedHashMap create(Request req, Response res) {
-        res.type ( "application/json" );
-        res.status(201);
+        res.type("application/json")
+        res.status(201)
 
         String authentication = req.headers("Authorization");
         def (login, pass) = InputValidator.processAuthentication(authentication)
