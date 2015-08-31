@@ -26,7 +26,7 @@ public class IotStore {
 
         final JsonTransformer jsonTransformer = new JsonTransformer();
 
-        Endpoints.setMainUrl("http://192.168.0.71:4567");
+        Endpoints.setMainUrl("http://localhost:4567");
         Endpoints.addClass("area", "areas");
         Endpoints.addClass("measurementvariable", "variables");
         Endpoints.addClass("resource", "devices");
