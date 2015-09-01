@@ -21,7 +21,7 @@ class Endpoints {
         try {
             id = pathParts[2].toInteger()
         } catch (NumberFormatException e) {
-            throw IllegalFormatException
+            throw new MalformedURLException()
         }
 
         String className = ''
@@ -31,7 +31,7 @@ class Endpoints {
             className = classToPath.find({ return it.value == collection }).key
             cluster = clusterToClass.find({ return it.value == className }).key
         } catch (NullPointerException e) {
-            throw new IllegalFormatException()
+            throw new MalformedURLException()
         }
 
         return new ORecordId(cluster, id)
