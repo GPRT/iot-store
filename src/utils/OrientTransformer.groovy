@@ -1,6 +1,7 @@
 package utils
 
 import com.orientechnologies.orient.core.db.record.ORecordLazyList
+import com.orientechnologies.orient.core.db.record.OTrackedList
 import com.orientechnologies.orient.core.db.record.OTrackedMap
 import com.orientechnologies.orient.core.db.record.OTrackedSet
 import com.orientechnologies.orient.core.db.record.ridbag.ORidBag
@@ -44,15 +45,21 @@ class OrientTransformer {
         return result
     }
 
-    public List fromOTrackedMap(OTrackedMap map) {
+    public List fromOTrackedList(OTrackedList list) {
+        def result = []
+        list.each { fillList(it, result) }
+        return result
+    }
+
+    public Map fromOTrackedMap(OTrackedMap map) {
         def result = [:]
         map.each { fillMap(it, result) }
         return result
     }
 
-    private getValue(field) {
+    private getValue(Object field) {
         def value = null
-        def type = field.class
+        def type = field.getClass()
 
         switch (type) {
             case ORidBag:
@@ -63,6 +70,9 @@ class OrientTransformer {
                 break
             case OTrackedMap:
                 value = fromOTrackedMap(field)
+                break
+            case OTrackedList:
+                value = fromOTrackedList(field)
                 break
             case ORecordLazyList:
                 value = fromORecordLazyList(field)

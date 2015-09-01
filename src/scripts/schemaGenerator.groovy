@@ -127,9 +127,9 @@ try {
     simulationHasGroupType.createProperty("in", OType.LINK, groupType)
     simulationHasGroupType.createProperty("out", OType.LINK, simulationType)
 
-    OrientEdgeType simulationExcludesDeviceType = graph.createEdgeType("ExcludesResource")
-    simulationExcludesDeviceType.createProperty("in", OType.LINK, resourceType)
-    simulationExcludesDeviceType.createProperty("out", OType.LINK, simulationType)
+    OrientEdgeType simulationIncludesDeviceType = graph.createEdgeType("IncludesResource")
+    simulationIncludesDeviceType.createProperty("in", OType.LINK, resourceType)
+    simulationIncludesDeviceType.createProperty("out", OType.LINK, simulationType)
 
     OrientEdgeType canMonitorType = graph.createEdgeType("CanMonitor")
     canMonitorType.createProperty("in", OType.LINK, resourceType)

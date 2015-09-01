@@ -11,11 +11,11 @@ class SimulationInterfacer extends VertexInterfacer {
         super("Simulation",
                 ["name"             : "name",
                  "domainData"       : "domainData",
-                 "fakeAreaResources": "fakeAreaResources",
-                 "fakeGroupResources": "fakeGroupResources"],
+                 "fakeAreaDevices": "fakeAreaDevices",
+                 "fakeGroupDevices": "fakeGroupDevices"],
                 ["areas" : "out(\"SimulatesArea\") as areas",
                  "groups": "out(\"SimulatesGroup\") as groups",
-                 "ignoredResources": "out(\"ExcludesResource\") as ignoredResources"])
+                 "devices": "out(\"IncludesResource\") as devices"])
     }
 
     void vertexNotFoundById(Long id) {
@@ -51,8 +51,8 @@ class SimulationInterfacer extends VertexInterfacer {
                                                            HashMap optionalData = [:]) {
         def simulationName = data.name
         def domainData = data.domainData
-        def fakeAreaResourcesMaps = data.fakeAreaResources
-        def fakeGroupResourcesMaps = data.fakeGroupResources
+        def fakeAreaResourcesMaps = data.fakeAreaDevices
+        def fakeGroupResourcesMaps = data.fakeGroupDevices
 
         def fakeAreaResources = []
 
@@ -108,33 +108,33 @@ class SimulationInterfacer extends VertexInterfacer {
 
         return ["name"             : simulationName,
                 "domainData"       : domainData,
-                "fakeAreaResources": fakeAreaResources,
-                "fakeGroupResources": fakeGroupResources]
+                "fakeAreaDevices": fakeAreaResources,
+                "fakeGroupDevices": fakeGroupResources]
     }
 
     protected void generateVertexRelations(ODatabaseDocumentTx db,
                                            OrientVertex vertex,
                                            HashMap data,
                                            HashMap optionalData = [:]) {
-        def ignoredResourceUrls = data.ignoredResources.unique()
+        def deviceUrls = data.devices.unique()
         def areaUrls = data.areas.unique()
         def groupUrls = data.groups.unique()
 
-        for (ignoredResourceUrl in ignoredResourceUrls) {
-            if (String.isInstance(ignoredResourceUrl) && !ignoredResourceUrl.isEmpty()) {
-                OrientVertex device = getVertexByUrl(db, ignoredResourceUrl)
+        for (deviceUrl in deviceUrls) {
+            if (String.isInstance(deviceUrl) && !deviceUrl.isEmpty()) {
+                OrientVertex device = getVertexByUrl(db, deviceUrl)
                 if (device) {
                     if (device.getLabel() != 'Resource')
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                                 400,
-                                "[" + ignoredResourceUrl + "] is not a valid id for a device!",
+                                "[" + deviceUrl + "] is not a valid id for a device!",
                                 "Choose an id for a device instead")
 
-                    vertex.addEdge("ExcludesResource", device)
+                    vertex.addEdge("IncludesResource", device)
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,
-                            "Device [" + ignoredResourceUrl + "] was not found!",
+                            "Device [" + deviceUrl + "] was not found!",
                             "The device does not exist")
                 }
             }
