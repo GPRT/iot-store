@@ -151,11 +151,11 @@ abstract class ClassInterfacer {
 
         try {
             rid = Endpoints.urlToRid(new URL(url))
-        } catch (IllegalFormatException e) {
+        } catch (MalformedURLException e) {
             throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                     400,
-                    "[" + url + "] is not a valid id!",
-                    "Choose an id that already exists")
+                    "[" + url + "] is not a valid url!",
+                    "Choose an url that already exists")
         }
 
         return getVertexByRid(db, rid)
