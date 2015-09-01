@@ -71,11 +71,11 @@ class OrientTransformer {
             case OTrackedMap:
                 value = fromOTrackedMap(field)
                 break
-            case OTrackedList:
-                value = fromOTrackedList(field)
-                break
             case ORecordLazyList:
                 value = fromORecordLazyList(field)
+                break
+            case OTrackedList:
+                value = fromOTrackedList(field)
                 break
             case ODocument:
                 value = fromODocument(field)
