@@ -242,7 +242,7 @@ class InputValidator {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,
                     400,
                     "Granularity ["+granularity+"] is invalid!",
-                    "Possible granularities are: YEARS,MONTHS,DAYS,HOURS,MINUTES")
+                    "Possible granularities are: YEARS,MONTHS,DAYS,HOURS,MINUTES,SAMPLES")
         }
     }
 }
