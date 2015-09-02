@@ -15,6 +15,32 @@ class MeasurementRequestProcessor extends RequestProcessor {
         super(factory, new MeasurementInterfacer())
     }
 
+    private HashMap initializeGet(Request req, Response res) {
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
+
+        Set<String> queryFields = req.queryParams()
+        Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp", "granularity"]
+        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        Long id = InputValidator.processId(req.params(":id"))
+
+        def beginTimestampParam = req.queryParams("beginTimestamp")
+        def endTimestampParam = req.queryParams("endTimestamp")
+        def granularityParam = req.queryParams("granularity")
+
+        def beginTimestamp = InputValidator.processTimestampParam(beginTimestampParam)
+        def endTimestamp = InputValidator.processTimestampParam(endTimestampParam)
+        def granularity = InputValidator.processGranularityParam(granularityParam)
+
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        LinkedHashMap params = ["beginTimestamp":beginTimestamp,
+                                "endTimestamp":endTimestamp,
+                                "granularity":granularity]
+
+        [db:db,params:params,optionalParams:[id:id.toLong()]]
+    }
+
     LinkedHashMap create(Request req, Response res) {
         res.type ( "application/json" );
         res.status(201);
@@ -44,32 +70,42 @@ class MeasurementRequestProcessor extends RequestProcessor {
     List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
 
-        String authentication = req.headers("Authorization");
-        def (login, pass) = InputValidator.processAuthentication(authentication)
-
-        Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp", "granularity"]
-        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
-
-        Long id = InputValidator.processId(req.params(":id"))
-
-        def beginTimestampParam = req.queryParams("beginTimestamp")
-        def endTimestampParam = req.queryParams("endTimestamp")
-        def granularityParam = req.queryParams("granularity")
-
-        def beginTimestamp = InputValidator.processTimestampParam(beginTimestampParam)
-        def endTimestamp = InputValidator.processTimestampParam(endTimestampParam)
-        def granularity = InputValidator.processGranularityParam(granularityParam)
-
-        ODatabaseDocumentTx db = this.getDatabase(login, pass)
-        LinkedHashMap params = ["beginTimestamp":beginTimestamp,
-                                "endTimestamp":endTimestamp,
-                                "granularity":granularity]
+        def getParams = this.initializeGet(req,res)
 
         try {
-            return this.databaseInterfacer.get(db, params, ["networkId": id.toLong()])
+            return this.databaseInterfacer.get(getParams.db,
+                                                getParams.params,
+                                                getParams.optionalParams)
         } finally {
-            db.close()
+            getParams.db.close()
+        }
+    }
+
+    List<LinkedHashMap> getFromArea(Request req, Response res) {
+        res.type("application/json");
+
+        def getParams = this.initializeGet(req,res)
+
+        try {
+            return this.databaseInterfacer.getFromArea(getParams.db,
+                                                        getParams.params,
+                                                        getParams.optionalParams)
+        } finally {
+            getParams.db.close()
+        }
+    }
+
+    List<LinkedHashMap> getFromGroup(Request req, Response res) {
+        res.type("application/json");
+
+        def getParams = this.initializeGet(req,res)
+
+        try {
+            return this.databaseInterfacer.getFromGroup(getParams.db,
+                                                        getParams.params,
+                                                        getParams.optionalParams)
+        } finally {
+            getParams.db.close()
         }
     }
 }
