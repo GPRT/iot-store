@@ -253,18 +253,27 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def results = []
         def measurements = parent.getProperty('measurements').getRecord()
 
-        ArrayList<ODocument> years = (begin.year + 1900..end.year + 1900).collect {
-            measurements.field('year').getAt(it)
+        def yearRange = (begin.year + 1900..end.year + 1900)
+        def yearMap = measurements.field('year')
+        ArrayList<ODocument> years = yearRange.collect {
+            yearMap.getAt(it)
+        } - [null]
+
+        if (years.size() >= 1) {
+            if (begin.year+1900 < yearMap.keySet()[0].toInteger())
+                begin = new Date("01/01/2000 00:00:00")
+            if (end.year+1900 < yearMap.keySet().last().toInteger())
+                end = new Date("12/31/2000 23:59:59")
         }
 
         if (granularityValue >= Granularity.MONTHS) {
-            def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12)
+            def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12) - [null]
             if (granularityValue >= Granularity.DAYS) {
-                def days = findSubSet(months, begin.date, end.date, 'day', 31)
+                def days = findSubSet(months, begin.date, end.date, 'day', 31) - [null]
                 if (granularityValue >= Granularity.HOURS) {
-                    def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23)
+                    def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23) - [null]
                     if (granularityValue >= Granularity.MINUTES) {
-                        def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59)
+                        def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59) - [null]
                         if (granularityValue >= Granularity.SAMPLES) {
                             minutes.each {
                                 min ->
@@ -289,7 +298,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 this.orientTransformer.fromODocument(it)
             }
         }
-        else{
+        else {
             results.collect {
                 result ->
                     def resultMap = [sum:[:],
