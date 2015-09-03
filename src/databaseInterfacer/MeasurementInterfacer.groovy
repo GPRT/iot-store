@@ -2,7 +2,9 @@ package databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.record.ORecord
+import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
+import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import exceptions.ResponseErrorCode
 import exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
@@ -44,17 +46,144 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 "The measurement does not exist")
     }
 
+    protected Iterable<LinkedHashMap> getFromArea(ODatabaseDocumentTx db,
+                                                  Map params = [:],
+                                                  Map optionalParams = [:],
+                                                  String className = this.className) {
+        OrientGraph graph = new OrientGraph(db)
+        def area
+        def areaId = optionalParams.id
+        def areas = []
+        def devices = []
+
+        if (areaId >= 0) {
+            def clusterId = this.getClusterId(db, 'Area')
+            def rid = new ORecordId(clusterId, areaId.toLong())
+            area = graph.getVertex(rid)
+            if (!area) {
+                throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
+                        404,
+                        "Area with id [" + areaId + "] not found!",
+                        "The area does not exist")
+            }
+        }
+
+        areas.add(area)
+        while (areas) {
+            def deeperAreas = []
+            areas.each {
+                it.getVertices(Direction.OUT).each {
+                    if (it.getLabel() == 'Area')
+                        deeperAreas.add(it)
+                    else if (it.getLabel() == 'Resource')
+                        devices.add(it)
+                }
+            }
+            areas = deeperAreas
+        }
+
+        this.getFromDeviceCollection(db,
+                params,optionalParams
+                ,className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
+    }
+
+    protected Iterable<LinkedHashMap> getFromGroup(ODatabaseDocumentTx db,
+                                                   Map params = [:],
+                                                   Map optionalParams = [:],
+                                                   String className = this.className) {
+        OrientGraph graph = new OrientGraph(db)
+        def group
+        def groupId = optionalParams.id
+        def groups = []
+        def devices = []
+
+        if (groupId >= 0) {
+            def clusterId = this.getClusterId(db, 'Group')
+            def rid = new ORecordId(clusterId, groupId.toLong())
+            group = graph.getVertex(rid)
+            if (!group) {
+                throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
+                        404,
+                        "Group with id [" + groupId + "] not found!",
+                        "The group does not exist")
+            }
+        }
+
+        groups.add(group)
+        while (groups) {
+            def deeperGroups = []
+            groups.each {
+                it.getVertices(Direction.OUT).each {
+                    if (it.getLabel() == 'Group')
+                        deeperGroups.add(it)
+                    else if (it.getLabel() == 'Resource')
+                        devices.add(it)
+                }
+            }
+            groups = deeperGroups
+        }
+
+        this.getFromDeviceCollection(db,
+                params,optionalParams
+                ,className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
+    }
+    protected Iterable<LinkedHashMap> getFromDeviceCollection(ODatabaseDocumentTx db,
+                                                              Map params = [:],
+                                                              Map optionalParams = [:],
+                                                              String className = this.className,
+                                                              ArrayList devices) {
+        def mean = { it.sum()/it.size() }
+        def granularity = Granularity.valueOf(params.granularity.toString())
+
+        def measurementPipe = devices.collect {
+            this.get(db, params, [id: it.getId().getClusterPosition()], className)
+        }
+        if(granularity < Granularity.SAMPLES) {
+            measurementPipe.sum().groupBy({ it.timestamp })
+                    .collect {
+                def sumMerge = [:]
+                it.value.sum.collect {
+                    it.collect { k, v -> ["$k": v] }
+                }
+                .sum().collect {
+                    def key = (it.keySet()[0]).toString()
+                    if (sumMerge[key] == null)
+                        sumMerge[key] = 0.0
+                    sumMerge[key] += it.values()[0]
+                }
+                sumMerge
+                def meanMerge = [:]
+                it.value.mean.collect {
+                    it.collect { k, v -> ["$k": v] }
+                }
+                .sum().collect {
+                    def key = (it.keySet()[0]).toString()
+                    if (meanMerge[key] == null)
+                        meanMerge[key] = []
+                    meanMerge[key].add(it.values()[0])
+                }
+                meanMerge.each { k, v -> meanMerge[k] = mean(v) }
+
+                [sum      : sumMerge,
+                 mean     : meanMerge,
+                 timestamp: it.key]
+            }
+        }
+        else {
+            measurementPipe.sum()
+        }
+    }
+
     protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                           Map params = [:],
                                           Map optionalParams = [:],
                                           String className = this.className) {
-        def parent = null
         OrientGraph graph = new OrientGraph(db)
-
+        OrientVertex parent
         def beginTimestamp = params.beginTimestamp
         def endTimestamp = params.endTimestamp
         def granularity = params.granularity
-        def networkId = optionalParams.networkId
+        def networkId = optionalParams.id
 
         if (beginTimestamp >= endTimestamp) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
@@ -118,75 +247,78 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 return range
         }
 
-        try {
-            db.begin()
-            def granularityValue = Granularity.valueOf(granularity.toString())
-            def begin = beginTimestamp
-            def end = endTimestamp
-            def results = []
-            def measurements = parent.getProperty('measurements').getRecord()
+        def granularityValue = Granularity.valueOf(granularity.toString())
+        def begin = beginTimestamp
+        def end = endTimestamp
+        def results = []
+        def measurements = parent.getProperty('measurements').getRecord()
 
-            ArrayList<ODocument> years = (begin.year + 1900..end.year + 1900).collect {
-                measurements.field('year').getAt(it)
-            }
+        def yearRange = (begin.year + 1900..end.year + 1900)
+        def yearMap = measurements.field('year')
+        ArrayList<ODocument> years = yearRange.collect {
+            yearMap.getAt(it)
+        } - [null]
 
-            if (granularityValue >= Granularity.MONTHS) {
-                def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12)
-                if (granularityValue >= Granularity.DAYS) {
-                    def days = findSubSet(months, begin.date, end.date, 'day', 31)
-                    if (granularityValue >= Granularity.HOURS) {
-                        def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23)
-                        if (granularityValue >= Granularity.MINUTES) {
-                            def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59)
-                            if (granularityValue >= Granularity.SAMPLES) {
-                                minutes.each {
-                                    min ->
-                                        min.field('sample').each {
-                                            results.add(it)
-                                        }
-                                }
-                            }
-                            else
-                                results = minutes
-                        } else
-                            results = hours
-                    } else
-                        results = days
-                } else
-                    results = months
-            } else
-                results = years
+        if (years.size() >= 1) {
+            if (begin.year+1900 < yearMap.keySet()[0].toInteger())
+                begin = new Date("01/01/2000 00:00:00")
+            if (end.year+1900 < yearMap.keySet().last().toInteger())
+                end = new Date("12/31/2000 23:59:59")
+        }
 
-            if (granularityValue > Granularity.MINUTES) {
-                results.collect {
-                    this.orientTransformer.fromODocument(it)
-                }
-            }
-            else{
-                results.collect {
-                    result ->
-                        def resultMap = [sum:[:],
-                                         mean:[:],
-                                         timestamp:result.field('log').field('timestamp')]
-
-                        ['sum','mean'].collect {
-                            def variables = [:]
-                            result.field('log').field(it).collect {
-                                key,value ->
-                                    if(!variables.getAt(key))
-                                        variables.put(key,Endpoints.ridToUrl(new ORecordId(key)))
-                                    resultMap.getAt(it).put(
-                                            variables.getAt(key),
-                                            this.orientTransformer.fromODocument(value.getRecord()))
+        if (granularityValue >= Granularity.MONTHS) {
+            def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12) - [null]
+            if (granularityValue >= Granularity.DAYS) {
+                def days = findSubSet(months, begin.date, end.date, 'day', 31) - [null]
+                if (granularityValue >= Granularity.HOURS) {
+                    def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23) - [null]
+                    if (granularityValue >= Granularity.MINUTES) {
+                        def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59) - [null]
+                        if (granularityValue >= Granularity.SAMPLES) {
+                            minutes.each {
+                                min ->
+                                    min.field('sample').each {
+                                        results.add(it)
+                                    }
                             }
                         }
-                        if (resultMap.sum)
-                            resultMap
-                } - [null]
+                        else
+                            results = minutes
+                    } else
+                        results = hours
+                } else
+                    results = days
+            } else
+                results = months
+        } else
+            results = years
+
+        if (granularityValue > Granularity.MINUTES) {
+            results.collect {
+                this.orientTransformer.fromODocument(it)
             }
         }
-        finally {
-            db.close()
+        else {
+            results.collect {
+                result ->
+                    def resultMap = [sum:[:],
+                                     mean:[:],
+                                     timestamp:result.field('log').field('timestamp')]
+
+                    ['sum','mean'].collect {
+                        def variables = [:]
+                        result.field('log').field(it).collect {
+                            key,value ->
+                                if(!variables.getAt(key))
+                                    variables.put(key,Endpoints.ridToUrl(new ORecordId(key)))
+                                resultMap.getAt(it).put(
+                                        variables.getAt(key),
+                                        value.getRecord().field('value'))
+                        }
+                    }
+                    if (resultMap.sum)
+                        resultMap
+            } - [null]
         }
     }
 
@@ -253,12 +385,30 @@ class MeasurementInterfacer extends DocumentInterfacer {
                     "The device does not exist")
         }
 
+        def dateBuilder = {
+            granularity ->
+                def granularityValue = Granularity.valueOf(granularity.toUpperCase()+'S')
+                def newDate = new Date('01/01/01 00:00:00')
+                if (granularityValue >= Granularity.YEARS)
+                    newDate.year = date.year
+                if (granularityValue >= Granularity.MONTHS)
+                    newDate.month = date.month
+                if (granularityValue >= Granularity.DAYS)
+                    newDate.date = date.date
+                if (granularityValue >= Granularity.HOURS)
+                    newDate.hours = date.hours
+                if (granularityValue >= Granularity.MINUTES)
+                    newDate.minutes = date.minutes
+                newDate
+        }
+
         def initiateAggregationNode = {
-            ODocument newRecord, String mapName, newDataStructure ->
+            ODocument newRecord, String mapName,
+            newDataStructure, granularity ->
                 def newLog = new ODocument('Log')
                 newLog.field('sum', new LinkedHashMap())
                 newLog.field('mean', new LinkedHashMap())
-                newLog.field('timestamp', date)
+                newLog.field('timestamp', dateBuilder(granularity))
                 newLog.save()
                 db.commit()
                 newRecord.field(mapName, newDataStructure)
@@ -276,9 +426,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 if (currentRecord == null) {
                     def newRecord = new ODocument(currentGranularity)
                     if (currentGranularity == 'Minute')
-                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new ArrayList<ODocument>())
+                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
+                                new ArrayList<ODocument>(), currentGranularity)
                     else
-                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(), new LinkedHashMap())
+                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
+                                new LinkedHashMap(), currentGranularity)
 
                     if (rightBranch.size()==0) {
                         def lastMeasurement = currentMap
