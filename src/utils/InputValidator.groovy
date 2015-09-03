@@ -225,7 +225,7 @@ class InputValidator {
    static HashMap processTimestampsParam(String beginTimestamp, String endTimestamp) {
        def newBegin, newEnd
        try{
-           if (beginTimestamp.isEmpty())
+           if (!beginTimestamp)
                newBegin = new Date("01/01/01 00:00:00")
            else
                newBegin = new Date(beginTimestamp)
@@ -237,7 +237,7 @@ class InputValidator {
                    'Possible format "MM/DD/YYYY hh:mm:ss"')
        }
        try{
-           if (endTimestamp.isEmpty())
+           if (!endTimestamp)
                newEnd = new Date()
            else
                newEnd = new Date(endTimestamp)
@@ -253,7 +253,11 @@ class InputValidator {
 
     static Granularity processGranularityParam(String granularity) {
         try{
-            return Granularity.valueOf(granularity)
+            if (!granularity)
+                return Granularity.SAMPLES
+            else
+                return Granularity.valueOf(granularity)
+
         }
         catch (IllegalArgumentException e){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,
