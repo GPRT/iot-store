@@ -207,41 +207,31 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def findSubSet = {
             measurementSet, beginRange, endRange, granularityLevel, rangeSize ->
                 def range = new ArrayList<ODocument>()
-                if (measurementSet.size() > 1) {
+                def validateAndAdd = {
+                    setIndex, mapIndex ->
+                    if (measurementSet[setIndex].field(granularityLevel)[mapIndex])
+                        range.add(measurementSet[setIndex].field(granularityLevel)[mapIndex])
+                }
+
+                if (measurementSet.size() == 1){
                     (beginRange..rangeSize).collect {
-                        try {
-                            if (measurementSet.first().field(granularityLevel).getAt(it))
-                                range.add(measurementSet.first().field(granularityLevel).getAt(it))
-                        }
-                        catch (NullPointerException e) { }
+                        validateAndAdd(0,it)
+                    }
+                }
+                else if (measurementSet.size() >= 2){
+                    (beginRange..rangeSize).collect {
+                        validateAndAdd(0,it)
                     }
                     if (measurementSet.size() > 2) {
                         (1..measurementSet.size() - 2).collect {
                             setIter ->
                                 (0..rangeSize).collect {
-                                    try {
-                                        if (measurementSet[setIter].field(granularityLevel).getAt(it))
-                                            range.add(measurementSet[setIter].field(granularityLevel).getAt(it))
-                                    }
-                                    catch (NullPointerException e) { }
+                                    validateAndAdd(setIter,it)
                                 }
                         }
                     }
                     (1..endRange).collect {
-                        try {
-                            if (measurementSet.last().field(granularityLevel).getAt(it))
-                                range.add(measurementSet.last().field(granularityLevel).getAt(it))
-                        }
-                        catch(NullPointerException e) { }
-                    }
-                } else {
-                    (beginRange..endRange).collect {
-                        try {
-                            if (measurementSet.first().field(granularityLevel).getAt(it)) {
-                                range.add(measurementSet.first().field(granularityLevel).getAt(it))
-                            }
-                        }
-                        catch(NullPointerException e) { }
+                        validateAndAdd(measurementSet.size()-1,it)
                     }
                 }
                 return range
