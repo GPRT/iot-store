@@ -69,6 +69,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
     List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
+        res.status(200);
 
         def getParams = this.initializeGet(req,res)
 
@@ -83,6 +84,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
     List<LinkedHashMap> getFromArea(Request req, Response res) {
         res.type("application/json");
+        res.status(200);
 
         def getParams = this.initializeGet(req,res)
 
@@ -97,6 +99,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
     List<LinkedHashMap> getFromGroup(Request req, Response res) {
         res.type("application/json");
+        res.status(200);
 
         def getParams = this.initializeGet(req,res)
 
