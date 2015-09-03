@@ -20,7 +20,8 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def (login, pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
-        Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp", "granularity"]
+        Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp",
+                                          "granularity","page","pageLimit"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
@@ -28,15 +29,22 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def beginTimestampParam = req.queryParams("beginTimestamp")
         def endTimestampParam = req.queryParams("endTimestamp")
         def granularityParam = req.queryParams("granularity")
+        def pageParam = req.queryParams("page")
+        def pageLimitParam = req.queryParams("pageLimit")
 
-        def beginTimestamp = InputValidator.processTimestampParam(beginTimestampParam)
-        def endTimestamp = InputValidator.processTimestampParam(endTimestampParam)
+        def timestamps = InputValidator.processTimestampsParam(beginTimestampParam,endTimestampParam)
+        def beginTimestamp = timestamps.beginTimestamp
+        def endTimestamp = timestamps.endTimestamp
         def granularity = InputValidator.processGranularityParam(granularityParam)
+        int pageField = InputValidator.processPageParam(pageParam)
+        int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
         ODatabaseDocumentTx db = this.getDatabase(login, pass)
         LinkedHashMap params = ["beginTimestamp":beginTimestamp,
                                 "endTimestamp":endTimestamp,
-                                "granularity":granularity]
+                                "granularity":granularity,
+                                "pageField":pageField,
+                                "pageLimitField":pageLimitField]
 
         [db:db,params:params,optionalParams:[id:id.toLong()]]
     }

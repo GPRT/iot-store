@@ -183,7 +183,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def beginTimestamp = params.beginTimestamp
         def endTimestamp = params.endTimestamp
         def granularity = params.granularity
+        def pageField = params.pageField
+        def pageLimitField = params.pageLimitField
         def networkId = optionalParams.id
+        def measurementRange = [begin:(pageField*pageLimitField),
+                                end:(pageField*pageLimitField + pageLimitField)]
 
         if (beginTimestamp >= endTimestamp) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
@@ -283,31 +287,44 @@ class MeasurementInterfacer extends DocumentInterfacer {
         } else
             results = years
 
+        def pageIndex = -1
         if (granularityValue > Granularity.MINUTES) {
             results.collect {
-                this.orientTransformer.fromODocument(it)
+                pageIndex+=1
+                if (pageIndex >= measurementRange.begin
+                        && pageIndex <= measurementRange.end) {
+                    this.orientTransformer.fromODocument(it)
+                }
             }
         }
         else {
             results.collect {
                 result ->
-                    def resultMap = [sum:[:],
-                                     mean:[:],
-                                     timestamp:result.field('log').field('timestamp')]
+                    pageIndex += 1
+                    if (pageIndex >= measurementRange.begin
+                            && pageIndex <= measurementRange.end) {
+                        def resultMap = [sum      : [:],
+                                         mean     : [:],
+                                         timestamp: result.field('log').field('timestamp')]
 
-                    ['sum','mean'].collect {
-                        def variables = [:]
-                        result.field('log').field(it).collect {
-                            key,value ->
-                                if(!variables.getAt(key))
-                                    variables.put(key,Endpoints.ridToUrl(new ORecordId(key)))
-                                resultMap.getAt(it).put(
-                                        variables.getAt(key),
-                                        value.getRecord().field('value'))
+                        ['sum', 'mean'].collect {
+                            def variables = [:]
+                            result.field('log').field(it).collect {
+                                key, value ->
+                                    if (!variables.getAt(key))
+                                        variables.put(key, Endpoints.ridToUrl(new ORecordId(key)))
+                                    resultMap.getAt(it).put(
+                                            variables.getAt(key),
+                                            value.getRecord().field('value'))
+                            }
+                        }
+                        if (resultMap.sum)
+                            resultMap
+                        else {
+                            pageIndex -= 1
+                            null
                         }
                     }
-                    if (resultMap.sum)
-                        resultMap
             } - [null]
         }
     }
