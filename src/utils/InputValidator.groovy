@@ -222,17 +222,34 @@ class InputValidator {
         }
     }
 
-   static Date processTimestampParam(String timestamp) {
-        try{
-            return new Date(timestamp)
-        }
-        catch (IllegalArgumentException e){
-            throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
-                    400,
-                    "Timestamp ["+timestamp+"] is invalid!",
-                    'Possible format "MM/DD/YYYY hh:mm:ss"')
-        }
-    }
+   static HashMap processTimestampsParam(String beginTimestamp, String endTimestamp) {
+       def newBegin, newEnd
+       try{
+           if (beginTimestamp.isEmpty())
+               newBegin = new Date("01/01/01 00:00:00")
+           else
+               newBegin = new Date(beginTimestamp)
+       }
+       catch (IllegalArgumentException e){
+           throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
+                   400,
+                   "beginTimestamp ["+beginTimestamp+"] is invalid!",
+                   'Possible format "MM/DD/YYYY hh:mm:ss"')
+       }
+       try{
+           if (endTimestamp.isEmpty())
+               newEnd = new Date()
+           else
+               newEnd = new Date(endTimestamp)
+       }
+       catch (IllegalArgumentException e){
+           throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
+                   400,
+                   "endTimestamp ["+endTimestamp+"] is invalid!",
+                   'Possible format "MM/DD/YYYY hh:mm:ss"')
+       }
+       return ['beginTimestamp':newBegin,'endTimestamp':newEnd]
+   }
 
     static Granularity processGranularityParam(String granularity) {
         try{
