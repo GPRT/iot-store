@@ -98,10 +98,11 @@ class DeviceInterfacer extends VertexInterfacer {
             }
         }
 
-        def measurements = new ODocument("Measurements")
-        measurements.field('year',new LinkedHashMap())
-        measurements.save()
-
-        vertex.setProperty('measurements', measurements.getIdentity())
+        if (!vertex.getProperty('measurements')) {
+            ODocument measurements = new ODocument("Measurements")
+            measurements.field('year', new LinkedHashMap())
+            measurements.save()
+            vertex.setProperty('measurements', measurements.getIdentity())
+        }
     }
 }
