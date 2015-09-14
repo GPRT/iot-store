@@ -19,7 +19,8 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp",
-                                          "granularity","page","pageLimit"]
+                                          "granularity","page","pageLimit",
+                                            "measurementVariables"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
@@ -27,6 +28,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def beginTimestampParam = req.queryParams("beginTimestamp")
         def endTimestampParam = req.queryParams("endTimestamp")
         def granularityParam = req.queryParams("granularity")
+        def measurementVariablesParam = req.queryParams("measurementVariables")
         def pageParam = req.queryParams("page")
         def pageLimitParam = req.queryParams("pageLimit")
 
@@ -34,6 +36,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def beginTimestamp = timestamps.beginTimestamp
         def endTimestamp = timestamps.endTimestamp
         def granularity = InputValidator.processGranularityParam(granularityParam)
+        Set measurementVariables = InputValidator.processMeasurementVariablesParam(measurementVariablesParam)
         int pageField = InputValidator.processPageParam(pageParam)
         int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
@@ -41,6 +44,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         LinkedHashMap params = ["beginTimestamp":beginTimestamp,
                                 "endTimestamp":endTimestamp,
                                 "granularity":granularity,
+                                "measurementVariables":measurementVariables,
                                 "pageField":pageField,
                                 "pageLimitField":pageLimitField]
 

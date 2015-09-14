@@ -266,4 +266,19 @@ class InputValidator {
                     "Possible granularities are: YEARS,MONTHS,DAYS,HOURS,MINUTES,SAMPLES")
         }
     }
+
+    static Set processMeasurementVariablesParam(String measurementVariablesURLs) {
+        if(measurementVariablesURLs) {
+            def measurementVariables = measurementVariablesURLs.split(",")
+            measurementVariables.each {
+                if (it.isEmpty()) {
+                    throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
+                            400,
+                            "MeasurementVariables is invalid",
+                            "The list cannot contain empty urls.")
+                }
+            }
+            return measurementVariables
+        }
+    }
 }
