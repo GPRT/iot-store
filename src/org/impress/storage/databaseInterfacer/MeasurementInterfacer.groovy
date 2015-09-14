@@ -81,8 +81,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         this.getFromDeviceCollection(db,
-                params,optionalParams
-                ,className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
+                params,optionalParams,
+                className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
     }
 
     protected Iterable<LinkedHashMap> getFromGroup(ODatabaseDocumentTx db,
@@ -122,8 +122,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         this.getFromDeviceCollection(db,
-                params,optionalParams
-                ,className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
+                params,optionalParams,
+                className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
     }
     protected Iterable<LinkedHashMap> getFromDeviceCollection(ODatabaseDocumentTx db,
                                                               Map params = [:],
@@ -181,11 +181,14 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def beginTimestamp = params.beginTimestamp
         def endTimestamp = params.endTimestamp
         def granularity = params.granularity
+        def measurementVariables = params.measurementVariables
         def pageField = params.pageField
         def pageLimitField = params.pageLimitField
         def networkId = optionalParams.id
         def measurementRange = [begin:(pageField*pageLimitField),
                                 end:(pageField*pageLimitField + pageLimitField)]
+        def variablesURLS = []
+        def variablesRids = []
 
         if (beginTimestamp >= endTimestamp) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
@@ -203,6 +206,35 @@ class MeasurementInterfacer extends DocumentInterfacer {
                         404,
                         "Device with id [" + networkId + "] not found!",
                         "The device does not exist")
+            }
+        }
+
+        for (variableURL in measurementVariables) {
+            def variableRid
+            try {
+                variableRid = Endpoints.urlToRid(new URL(variableURL))
+            }
+            catch (NullPointerException e){
+                throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
+                400,
+                "MeasurementVariables is invalid",
+                "URL ["+variableURL+"] is malformed.")
+            }
+            catch (MalformedURLException e){
+                throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
+                        400,
+                        "MeasurementVariables is invalid",
+                        "URL ["+variableURL+"] is malformed.")
+            }
+
+            if (variableRid.getRecord()) {
+                variablesURLS.add(variableURL.toString())
+                variablesRids.add(variableRid.toString())
+            } else {
+                throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
+                        404,
+                        "Measurement variable [" + variableURL + "] was not found!",
+                        "The measurement variable does not exist")
             }
         }
 
@@ -287,13 +319,22 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
         def pageIndex = -1
         if (granularityValue > Granularity.MINUTES) {
+            def json
+            def samples = []
             results.collect {
-                pageIndex+=1
-                if (pageIndex >= measurementRange.begin
-                        && pageIndex <= measurementRange.end) {
-                    this.orientTransformer.fromODocument(it)
-                }
+                result ->
+                    pageIndex+=1
+                    if (pageIndex >= measurementRange.begin
+                            && pageIndex <= measurementRange.end) {
+                        json = this.orientTransformer.fromODocument(result)
+                        if(variablesURLS.isEmpty() ||
+                                json.measurementVariable.toString() in variablesURLS)
+                            samples.add(json)
+                        else
+                            pageIndex -= 1
+                    }
             }
+            samples
         }
         else {
             results.collect {
@@ -309,11 +350,13 @@ class MeasurementInterfacer extends DocumentInterfacer {
                             def variables = [:]
                             result.field('log').field(it).collect {
                                 key, value ->
-                                    if (!variables.getAt(key))
-                                        variables.put(key, Endpoints.ridToUrl(new ORecordId(key)))
-                                    resultMap.getAt(it).put(
-                                            variables.getAt(key),
-                                            value.getRecord().field('value'))
+                                    if (variablesRids.isEmpty() || (key in variablesRids)) {
+                                        if (!variables.getAt(key))
+                                            variables.put(key, Endpoints.ridToUrl(new ORecordId(key)))
+                                        resultMap.getAt(it).put(
+                                                variables.getAt(key),
+                                                value.getRecord().field('value'))
+                                    }
                             }
                         }
                         if (resultMap.sum)
