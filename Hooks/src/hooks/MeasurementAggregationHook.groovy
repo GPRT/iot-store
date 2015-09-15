@@ -1,5 +1,6 @@
 package hooks
 
+import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.hook.ODocumentHookAbstract
 import com.orientechnologies.orient.core.hook.ORecordHook
 import com.orientechnologies.orient.core.record.impl.ODocument
@@ -18,8 +19,10 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
         return ORecordHook.DISTRIBUTED_EXECUTION_MODE.BOTH;
     }
 
+    @Override
     public void onRecordAfterUpdate( ODocument document ) {
         def className = document.getClassName()
+        def db = ODatabaseRecordThreadLocal.INSTANCE.get();
 
         if(document.field('lastMeasurement')) {
             def lastMeasurement = document.field('lastMeasurement')
@@ -45,11 +48,13 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                         def newSum = new ODocument('Sample')
                         newSum.field('value', newAggregation[variableId].sum())
                         newSum.save()
+                        db.commit()
                         lastLogSum.put(variableId,newSum)
                         def newMean = new ODocument('Sample')
                         newMean.field('value', this.mean(newAggregation[variableId]))
                         newMean.save()
                         lastLogMean.put(variableId, newMean)
+                        db.commit()
                 }
             }
             else {
@@ -88,12 +93,14 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                                 newSample.field('value', newAggregation.getAt(function))
                                 newSample.save()
                                 map.put(variableName, newSample)
+                                db.commit()
                         }
                 }
             }
             lastLog.field('sum',lastLogSum)
             lastLog.field('mean',lastLogMean)
             lastLog.save()
+            db.commit()
         }
     }
 
