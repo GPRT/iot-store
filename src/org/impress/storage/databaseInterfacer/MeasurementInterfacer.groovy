@@ -334,7 +334,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                             pageIndex -= 1
                     }
             }
-            samples
+            samples.sort { a,b -> b.timestamp <=> a.timestamp }
         }
         else {
             results.collect {
@@ -379,6 +379,16 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def measurementVariableUrl = data.measurementVariable
         def measurementVariableVertex
 
+        try {
+            value = value.toFloat()
+        }
+        catch (NumberFormatException|MissingMethodException e1) {
+            throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VALUE,
+                    400,
+                    "[" + value + "] cannot be converted to Float!",
+                    "Choose a Float compatible data type.")
+        }
+
         if (measurementVariableUrl && !measurementVariableUrl.isEmpty()) {
             measurementVariableVertex = getVertexByUrl(db, measurementVariableUrl)
 
@@ -389,7 +399,6 @@ class MeasurementInterfacer extends DocumentInterfacer {
                             "[" + measurementVariableUrl + "] is not a valid"
                                     +" id for a measurement variable!",
                             "Choose an id for an area instead")
-
             }
             else {
                 vertexNotFoundById(rid.clusterPosition)
