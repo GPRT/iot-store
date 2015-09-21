@@ -9,11 +9,13 @@ import org.impress.storage.exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.id.ORecordId
 import org.impress.storage.utils.Endpoints
+import org.impress.storage.utils.SearchHelpers
 
 class MeasurementInterfacer extends DocumentInterfacer {
     enum Granularity {
         YEARS, MONTHS, DAYS, HOURS, MINUTES, SAMPLES
     }
+
 
     def MeasurementInterfacer() {
         super("Sample",
@@ -238,136 +240,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
             }
         }
 
-        def findSubSet = {
-            measurementSet, beginRange, endRange, granularityLevel, rangeSize ->
-                def range = new ArrayList<ODocument>()
-                def validateAndAdd = {
-                    setIndex, mapIndex ->
-                    if (measurementSet[setIndex].field(granularityLevel)[mapIndex])
-                        range.add(measurementSet[setIndex].field(granularityLevel)[mapIndex])
-                }
-
-                if (measurementSet.size() == 1){
-                    (beginRange..rangeSize).collect {
-                        validateAndAdd(0,it)
-                    }
-                }
-                else if (measurementSet.size() >= 2){
-                    (beginRange..rangeSize).collect {
-                        validateAndAdd(0,it)
-                    }
-                    if (measurementSet.size() > 2) {
-                        (1..measurementSet.size() - 2).collect {
-                            setIter ->
-                                (0..rangeSize).collect {
-                                    validateAndAdd(setIter,it)
-                                }
-                        }
-                    }
-                    (1..endRange).collect {
-                        validateAndAdd(measurementSet.size()-1,it)
-                    }
-                }
-                return range
-        }
-
-        def granularityValue = Granularity.valueOf(granularity.toString())
-        def begin = beginTimestamp
-        def end = endTimestamp
-        def results = []
         def measurements = parent.getProperty('measurements').getRecord()
-
-        def yearRange = (begin.year + 1900..end.year + 1900)
-        def yearMap = measurements.field('year')
-        ArrayList<ODocument> years = yearRange.collect {
-            yearMap.getAt(it)
-        } - [null]
-
-        if (years.size() >= 1) {
-            if (begin.year+1900 < yearMap.keySet()[0].toInteger())
-                begin = new Date("01/01/2000 00:00:00")
-            if (end.year+1900 < yearMap.keySet().last().toInteger())
-                end = new Date("12/31/2000 23:59:59")
-        }
-
-        if (granularityValue >= Granularity.MONTHS) {
-            def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12) - [null]
-            if (granularityValue >= Granularity.DAYS) {
-                def days = findSubSet(months, begin.date, end.date, 'day', 31) - [null]
-                if (granularityValue >= Granularity.HOURS) {
-                    def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23) - [null]
-                    if (granularityValue >= Granularity.MINUTES) {
-                        def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59) - [null]
-                        if (granularityValue >= Granularity.SAMPLES) {
-                            minutes.each {
-                                min ->
-                                    min.field('sample').each {
-                                        results.add(it)
-                                    }
-                            }
-                        }
-                        else
-                            results = minutes
-                    } else
-                        results = hours
-                } else
-                    results = days
-            } else
-                results = months
-        } else
-            results = years
-
-        def pageIndex = -1
-        if (granularityValue > Granularity.MINUTES) {
-            def json
-            def samples = []
-            results.collect {
-                result ->
-                    pageIndex+=1
-                    if (pageIndex >= measurementRange.begin
-                            && pageIndex <= measurementRange.end) {
-                        json = this.orientTransformer.fromODocument(result)
-                        if(variablesURLS.isEmpty() ||
-                                json.measurementVariable.toString() in variablesURLS)
-                            samples.add(json)
-                        else
-                            pageIndex -= 1
-                    }
-            }
-            samples.sort { a,b -> b.timestamp <=> a.timestamp }
-        }
-        else {
-            results.collect {
-                result ->
-                    pageIndex += 1
-                    if (pageIndex >= measurementRange.begin
-                            && pageIndex <= measurementRange.end) {
-                        def resultMap = [sum      : [:],
-                                         mean     : [:],
-                                         timestamp: result.field('log').field('timestamp')]
-
-                        ['sum', 'mean'].collect {
-                            def variables = [:]
-                            result.field('log').field(it).collect {
-                                key, value ->
-                                    if (variablesRids.isEmpty() || (key in variablesRids)) {
-                                        if (!variables.getAt(key))
-                                            variables.put(key, Endpoints.ridToUrl(new ORecordId(key)))
-                                        resultMap.getAt(it).put(
-                                                variables.getAt(key),
-                                                value.getRecord().field('value'))
-                                    }
-                            }
-                        }
-                        if (resultMap.sum)
-                            resultMap
-                        else {
-                            pageIndex -= 1
-                            null
-                        }
-                    }
-            } - [null]
-        }
+        def pageRange = [(pageLimitField*pageField),(pageLimitField*pageField)+pageLimitField]
+        def results = SearchHelpers.DFSMeasurementFinder(measurements,beginTimestamp,endTimestamp,
+                                            granularity.toString(),pageRange,variablesRids)
+        return results
     }
 
     protected final LinkedHashMap generateDocumentProperties(ODatabaseDocumentTx db,
