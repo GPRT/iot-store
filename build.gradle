@@ -28,3 +28,8 @@ dependencies {
 repositories {
     mavenCentral()
 }
+
+task generateSchema(type: JavaExec) {
+    main = 'org.impress.storage.scripts.schemaGenerator'
+    classpath = sourceSets.main.runtimeClasspath
+}
