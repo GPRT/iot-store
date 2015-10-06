@@ -1,6 +1,7 @@
 package org.impress.storage.databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.orientechnologies.orient.core.exception.OValidationException
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
@@ -15,7 +16,6 @@ class MeasurementInterfacer extends DocumentInterfacer {
     enum Granularity {
         YEARS, MONTHS, DAYS, HOURS, MINUTES, SAMPLES
     }
-
 
     def MeasurementInterfacer() {
         super("Sample",
@@ -44,6 +44,37 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 404,
                 "Measurement [" + id + "] was not found!",
                 "The measurement does not exist")
+    }
+
+    protected LinkedHashMap create(ODatabaseDocumentTx db,
+                                   HashMap data,
+                                   HashMap optionalData = [:]){
+
+        if (!(this.getFieldNames() == data.keySet()))
+            invalidDocumentProperties()
+
+        if (data.isEmpty())
+            invalidDocumentProperties()
+
+        try {
+            db.begin()
+            def properties = generateDocumentProperties(db, data, optionalData)
+
+            if (null in properties.values())
+                invalidDocumentProperties()
+
+            def document = new ODocument('Sample')
+            document.field('value', properties['value'])
+            document.field('timestamp', properties['timestamp'])
+
+            generateDocumentRelations(db, document, data, optionalData)
+            db.commit()
+
+            return this.orientTransformer.fromODocument(document)
+        }
+        catch(OValidationException e) {
+            invalidDocumentProperties()
+        }
     }
 
     protected Iterable<LinkedHashMap> getFromArea(ODatabaseDocumentTx db,
@@ -136,7 +167,10 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def granularity = Granularity.valueOf(params.granularity.toString())
 
         def measurementPipe = devices.collect {
-            this.get(db, params, [id: it.getId().getClusterPosition()], className)
+            this.get(db, params,
+                    [id: it.getId().getClusterPosition(),
+                     variableId:optionalParams.variableId],
+                     className)
         }
         if(granularity < Granularity.SAMPLES) {
             measurementPipe.sum().groupBy({ it.timestamp })
@@ -174,23 +208,44 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
     }
 
+    protected Iterable<LinkedHashMap> getVariables(ODatabaseDocumentTx db,
+                                                   Map params = [:],
+                                                   Map optionalParams = [:],
+                                                   String className = this.className) {
+        OrientGraph graph = new OrientGraph(db)
+        OrientVertex parent
+        def networkId = optionalParams.id
+
+        if (networkId >= 0) {
+            def clusterId = this.getClusterId(db, 'Resource')
+            def rid = new ORecordId(clusterId, networkId.toLong())
+            parent = graph.getVertex(rid)
+            if (!parent) {
+                throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
+                        404,
+                        "Device with id [" + networkId + "] not found!",
+                        "The device does not exist")
+            }
+        }
+
+        parent.getVertices(Direction.OUT,"CanMeasure").collect{
+            this.orientTransformer.fromOVertex(it)
+        }
+    }
     protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                           Map params = [:],
                                           Map optionalParams = [:],
                                           String className = this.className) {
         OrientGraph graph = new OrientGraph(db)
         OrientVertex parent
+        OrientVertex variable
         def beginTimestamp = params.beginTimestamp
         def endTimestamp = params.endTimestamp
         def granularity = params.granularity
-        def measurementVariables = params.measurementVariables
         def pageField = params.pageField
         def pageLimitField = params.pageLimitField
         def networkId = optionalParams.id
-        def measurementRange = [begin:(pageField*pageLimitField),
-                                end:(pageField*pageLimitField + pageLimitField)]
-        def variablesURLS = []
-        def variablesRids = []
+        def variableId = optionalParams.variableId
 
         if (beginTimestamp >= endTimestamp) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
@@ -211,31 +266,14 @@ class MeasurementInterfacer extends DocumentInterfacer {
             }
         }
 
-        for (variableURL in measurementVariables) {
-            def variableRid
-            try {
-                variableRid = Endpoints.urlToRid(new URL(variableURL))
-            }
-            catch (NullPointerException e){
+        if (variableId >= 0) {
+            def clusterId = this.getClusterId(db, 'MeasurementVariable')
+            def rid = new ORecordId(clusterId, variableId.toLong())
+            variable = graph.getVertex(rid)
+            if (!variable) {
                 throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
-                400,
-                "MeasurementVariables is invalid",
-                "URL ["+variableURL+"] is malformed.")
-            }
-            catch (MalformedURLException e){
-                throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
-                        400,
-                        "MeasurementVariables is invalid",
-                        "URL ["+variableURL+"] is malformed.")
-            }
-
-            if (variableRid.getRecord()) {
-                variablesURLS.add(variableURL.toString())
-                variablesRids.add(variableRid.toString())
-            } else {
-                throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
                         404,
-                        "Measurement variable [" + variableURL + "] was not found!",
+                        "Variable with id [" + variableId + "] not found!",
                         "The measurement variable does not exist")
             }
         }
@@ -243,7 +281,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def measurements = parent.getProperty('measurements').getRecord()
         def pageRange = [(pageLimitField*pageField),(pageLimitField*pageField)+pageLimitField]
         def results = SearchHelpers.DFSMeasurementFinder(measurements,beginTimestamp,endTimestamp,
-                                            granularity.toString(),pageRange,variablesRids)
+                                                         granularity.toString(),pageRange,
+                                                         variable.getIdentity())
         return results
     }
 
@@ -303,6 +342,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                              HashMap optionalData = [:]) {
         OrientGraph graph = new OrientGraph(db)
         def timestamp = data.timestamp
+        def variableRid = Endpoints.urlToRid(new URL(data.measurementVariable))
         def date = new Date(timestamp)
         def networkId = optionalData.networkId
         def leftBranch = []
@@ -318,6 +358,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
                     "Device with id [" + networkId + "] not found!",
                     "The device does not exist")
         }
+
+        def variableVertex = graph.getVertex(variableRid)
+        def resourceVertices = parent.getVertices(Direction.OUT,"CanMeasure").toList()
+        if (!(variableVertex in resourceVertices))
+            parent.addEdge("CanMeasure",variableVertex)
 
         def dateBuilder = {
             granularity ->
@@ -359,12 +404,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 db.begin()
                 if (currentRecord == null) {
                     def newRecord = new ODocument(currentGranularity)
-                    if (currentGranularity == 'Minute')
-                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
-                                new ArrayList<ODocument>(), currentGranularity)
-                    else
-                        initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
-                                new LinkedHashMap(), currentGranularity)
+                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
+                            new LinkedHashMap(), currentGranularity)
 
                     if (rightBranch.size()==0) {
                         def lastMeasurement = currentMap
@@ -387,7 +428,23 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def dayRecord = returnValidRecord(monthRecord,'Day','Hour',date.date)
         def hourRecord = returnValidRecord(dayRecord,'Hour','Minute',date.hours)
         def minuteRecord = returnValidRecord(hourRecord,'Minute','Sample',date.minutes)
-        minuteRecord.field('sample').add(record)
+        def sampleMap = minuteRecord.field('sample')
+
+        if (!sampleMap[variableRid.toString()]){
+            def variableEntry = new ODocument('Samples')
+            variableEntry.field('variable',variableRid)
+            variableEntry.field('samples',[record])
+            variableEntry.save()
+            db.commit()
+
+            sampleMap.put(variableRid.toString(),variableEntry)
+        }
+        else {
+            def samplesList = sampleMap[variableRid.toString()].field('samples')
+            samplesList.add(0,record)
+            sampleMap[variableRid].field('samples',samplesList)
+            sampleMap[variableRid].save()
+        }
 
         if (rightBranch.size()>0) {
             leftBranch = leftBranch.reverse()
@@ -399,8 +456,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 (0..(leftBranch.size() - 2)).each {
                     granularity = rightDate.toMap().keySet().find({ key -> key in dates })
                     rightDate = rightDate.field(granularity)
-                            .sort({ a, b -> b.key <=> a.key })
-                            .entrySet().first().value.getRecord()
+                                .sort({ a, b -> b.key <=> a.key })
+                                .entrySet().first().value.getRecord()
                     rightBranch.add(rightDate)
                 }
             }
