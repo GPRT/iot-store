@@ -33,28 +33,19 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
             def newAggregation = [:]
 
             if (className == "Minute") {
-                measurementVariables = lastMeasurement.field('sample').collect {
-                    sample ->
-                        def variable = sample.field('measurementVariable')
-                        def variableId = variable.getIdentity().toString()
-                        if(newAggregation.getAt(variableId).is(null))
-                            newAggregation.put(variableId,[])
-                        newAggregation.getAt(variableId).add(sample.field('value'))
-                        variable
-                }
-                measurementVariables.each{
-                    variable ->
-                        def variableId = variable.getIdentity().toString()
-                        def newSum = new ODocument('Sample')
-                        newSum.field('value', newAggregation[variableId].sum())
-                        newSum.save()
-                        db.commit()
-                        lastLogSum.put(variableId,newSum)
-                        def newMean = new ODocument('Sample')
-                        newMean.field('value', this.mean(newAggregation[variableId]))
-                        newMean.save()
-                        lastLogMean.put(variableId, newMean)
-                        db.commit()
+                lastMeasurement.field('sample').each{
+                     variable, samples ->
+                         def samplesList = samples.getRecord().field('samples')
+                         def newSum = new ODocument('Sample')
+                         newSum.field('value', samplesList.sum{ it.field('value') })
+                         newSum.save()
+                         db.commit()
+                         lastLogSum.put(variable,newSum)
+                         def newMean = new ODocument('Sample')
+                         newMean.field('value', this.mean(samplesList.collect{it.field('value')}))
+                         newMean.save()
+                         lastLogMean.put(variable, newMean)
+                         db.commit()
                 }
             }
             else {
