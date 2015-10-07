@@ -58,7 +58,7 @@ public class IotStore {
         post(devicesPath, "application/json", deviceRequestProcessor::create, jsonTransformer);
         get(devicesPath + "/:id/variables", "application/json", measurementRequestProcessor::getVariables, jsonTransformer);
         get(devicesPath + "/:id/variables/:variableId", "application/json", measurementRequestProcessor::get, jsonTransformer);
-        post(devicesPath + "/:id/variables", "application/json", measurementRequestProcessor::create, jsonTransformer);
+        post(devicesPath + "/:id/measurements", "application/json", measurementRequestProcessor::create, jsonTransformer);
 
         String groupsPath = Endpoints.getPath("group");
         get(groupsPath, "application/json", groupRequestProcessor::get, jsonTransformer);

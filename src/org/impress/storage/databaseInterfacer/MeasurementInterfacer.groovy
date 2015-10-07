@@ -271,10 +271,10 @@ class MeasurementInterfacer extends DocumentInterfacer {
             def rid = new ORecordId(clusterId, variableId.toLong())
             variable = graph.getVertex(rid)
             if (!variable) {
-                throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
+                throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
                         404,
-                        "Variable with id [" + variableId + "] not found!",
-                        "The measurement variable does not exist")
+                        "Variable [" + variableId + "] not found!",
+                        "The variable does not exist")
             }
         }
 
