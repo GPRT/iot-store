@@ -42,6 +42,7 @@ public class IotStore {
         delete(areasPath + "/:id", "application/json", areaRequestProcessor::delete, jsonTransformer);
         post(areasPath, "application/json", areaRequestProcessor::create, jsonTransformer);
         get(areasPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::getFromArea, jsonTransformer);
+        get(areasPath + "/:id/variables", "application/json", measurementRequestProcessor::getVariablesFromArea, jsonTransformer);
 
         String variablesPath = Endpoints.getPath("measurementvariable");
         get(variablesPath, "application/json", variableRequestProcessor::get, jsonTransformer);
@@ -67,6 +68,7 @@ public class IotStore {
         delete(groupsPath + "/:id", "application/json", groupRequestProcessor::delete, jsonTransformer);
         post(groupsPath, "application/json", groupRequestProcessor::create, jsonTransformer);
         get(groupsPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::getFromGroup, jsonTransformer);
+        get(groupsPath + "/:id/variables", "application/json", measurementRequestProcessor::getVariablesFromGroup, jsonTransformer);
 
         String simulationsPath = Endpoints.getPath("simulation");
         get(simulationsPath, "application/json", simulationRequestProcessor::get, jsonTransformer);

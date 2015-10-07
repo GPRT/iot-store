@@ -208,6 +208,88 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
     }
 
+    protected Iterable<LinkedHashMap> getVariablesFromArea(ODatabaseDocumentTx db,
+                                                           Map params = [:],
+                                                           Map optionalParams = [:],
+                                                           String className = this.className) {
+        OrientGraph graph = new OrientGraph(db)
+        def area
+        def areaId = optionalParams.id
+        def areas = []
+        def devices = []
+
+        if (areaId >= 0) {
+            def clusterId = this.getClusterId(db, 'Area')
+            def rid = new ORecordId(clusterId, areaId.toLong())
+            area = graph.getVertex(rid)
+            if (!area) {
+                throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
+                        404,
+                        "Area with id [" + areaId + "] not found!",
+                        "The area does not exist")
+            }
+        }
+
+        areas.add(area)
+        while (areas) {
+            def deeperAreas = []
+            areas.each {
+                it.getVertices(Direction.OUT).each {
+                    if (it.getLabel() == 'Area')
+                        deeperAreas.add(it)
+                    else if (it.getLabel() == 'Resource')
+                        devices.add(it)
+                }
+            }
+            areas = deeperAreas
+        }
+
+        devices.collect{
+            this.getVariables(db,params,[id:it.getIdentity().clusterPosition], this.className)
+        }.sum().unique()
+    }
+
+    protected Iterable<LinkedHashMap> getVariablesFromGroup(ODatabaseDocumentTx db,
+                                                           Map params = [:],
+                                                           Map optionalParams = [:],
+                                                           String className = this.className) {
+        OrientGraph graph = new OrientGraph(db)
+        def group
+        def groupId = optionalParams.id
+        def groups = []
+        def devices = []
+
+        if (groupId >= 0) {
+            def clusterId = this.getClusterId(db, 'Group')
+            def rid = new ORecordId(clusterId, groupId.toLong())
+            group = graph.getVertex(rid)
+            if (!group) {
+                throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
+                        404,
+                        "Group with id [" + groupId + "] not found!",
+                        "The group does not exist")
+            }
+        }
+
+        groups.add(group)
+        while (groups) {
+            def deeperGroups = []
+            groups.each {
+                it.getVertices(Direction.OUT).each {
+                    if (it.getLabel() == 'Group')
+                        deeperGroups.add(it)
+                    else if (it.getLabel() == 'Resource')
+                        devices.add(it)
+                }
+            }
+            groups = deeperGroups
+        }
+
+        devices.collect{
+            this.getVariables(db,params,[id:it.getIdentity().clusterPosition], this.className)
+        }.sum().unique()
+    }
+
     protected Iterable<LinkedHashMap> getVariables(ODatabaseDocumentTx db,
                                                    Map params = [:],
                                                    Map optionalParams = [:],
