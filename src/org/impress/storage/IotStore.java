@@ -41,7 +41,7 @@ public class IotStore {
         put(areasPath + "/:id", "application/json", areaRequestProcessor::setById, jsonTransformer);
         delete(areasPath + "/:id", "application/json", areaRequestProcessor::delete, jsonTransformer);
         post(areasPath, "application/json", areaRequestProcessor::create, jsonTransformer);
-        get(areasPath + "/:id/variables/:variableId", "application/json", measurementRequestProcessor::getFromArea, jsonTransformer);
+        get(areasPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::getFromArea, jsonTransformer);
 
         String variablesPath = Endpoints.getPath("measurementvariable");
         get(variablesPath, "application/json", variableRequestProcessor::get, jsonTransformer);
@@ -57,7 +57,7 @@ public class IotStore {
         delete(devicesPath + "/:id", "application/json", deviceRequestProcessor::delete, jsonTransformer);
         post(devicesPath, "application/json", deviceRequestProcessor::create, jsonTransformer);
         get(devicesPath + "/:id/variables", "application/json", measurementRequestProcessor::getVariables, jsonTransformer);
-        get(devicesPath + "/:id/variables/:variableId", "application/json", measurementRequestProcessor::get, jsonTransformer);
+        get(devicesPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::get, jsonTransformer);
         post(devicesPath + "/:id/measurements", "application/json", measurementRequestProcessor::create, jsonTransformer);
 
         String groupsPath = Endpoints.getPath("group");
@@ -66,7 +66,7 @@ public class IotStore {
         put(groupsPath + "/:id", "application/json", groupRequestProcessor::setById, jsonTransformer);
         delete(groupsPath + "/:id", "application/json", groupRequestProcessor::delete, jsonTransformer);
         post(groupsPath, "application/json", groupRequestProcessor::create, jsonTransformer);
-        get(groupsPath + "/:id/variables/:variableId", "application/json", measurementRequestProcessor::getFromGroup, jsonTransformer);
+        get(groupsPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::getFromGroup, jsonTransformer);
 
         String simulationsPath = Endpoints.getPath("simulation");
         get(simulationsPath, "application/json", simulationRequestProcessor::get, jsonTransformer);
