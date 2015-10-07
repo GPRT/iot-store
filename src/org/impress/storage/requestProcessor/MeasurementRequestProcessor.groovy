@@ -19,16 +19,15 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = ["beginTimestamp", "endTimestamp",
-                                          "granularity","page","pageLimit",
-                                            "measurementVariables"]
+                                          "granularity","page","pageLimit"]
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
+        Long variableId = InputValidator.processId(req.params(":variableId"))
 
         def beginTimestampParam = req.queryParams("beginTimestamp")
         def endTimestampParam = req.queryParams("endTimestamp")
         def granularityParam = req.queryParams("granularity")
-        def measurementVariablesParam = req.queryParams("measurementVariables")
         def pageParam = req.queryParams("page")
         def pageLimitParam = req.queryParams("pageLimit")
 
@@ -36,7 +35,6 @@ class MeasurementRequestProcessor extends RequestProcessor {
         def beginTimestamp = timestamps.beginTimestamp
         def endTimestamp = timestamps.endTimestamp
         def granularity = InputValidator.processGranularityParam(granularityParam)
-        Set measurementVariables = InputValidator.processMeasurementVariablesParam(measurementVariablesParam)
         int pageField = InputValidator.processPageParam(pageParam)
         int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
 
@@ -44,11 +42,43 @@ class MeasurementRequestProcessor extends RequestProcessor {
         LinkedHashMap params = ["beginTimestamp":beginTimestamp,
                                 "endTimestamp":endTimestamp,
                                 "granularity":granularity,
-                                "measurementVariables":measurementVariables,
                                 "pageField":pageField,
                                 "pageLimitField":pageLimitField]
 
-        [db:db,params:params,optionalParams:[id:id.toLong()]]
+        [db:db,
+         params:params,
+         optionalParams:
+                 [id:id.toLong(),
+                  variableId:variableId.toLong()]]
+    }
+
+    private HashMap initializeGetVariables(Request req, Response res) {
+        res.type("application/json");
+        res.status(200);
+
+        String authentication = req.headers("Authorization");
+        def (login, pass) = InputValidator.processAuthentication(authentication)
+
+        Set<String> queryFields = req.queryParams()
+        Set<String> allowedQueryParams = ["page","pageLimit"]
+        InputValidator.validateQueryParams(queryFields, allowedQueryParams)
+
+        Long id = InputValidator.processId(req.params(":id"))
+
+        def pageParam = req.queryParams("page")
+        def pageLimitParam = req.queryParams("pageLimit")
+
+        int pageField = InputValidator.processPageParam(pageParam)
+        int pageLimitField = InputValidator.processPageLimitParam(pageLimitParam)
+
+        ODatabaseDocumentTx db = this.getDatabase(login, pass)
+        LinkedHashMap params = ["pageField":pageField,
+                                "pageLimitField":pageLimitField]
+
+        [db:db,
+         params:params,
+         optionalParams:
+                 [id:id.toLong()]]
     }
 
     LinkedHashMap create(Request req, Response res) {
@@ -77,6 +107,46 @@ class MeasurementRequestProcessor extends RequestProcessor {
         }
     }
 
+    List<LinkedHashMap> getVariablesFromArea(Request req, Response res) {
+        def getParams = this.initializeGetVariables(req,res)
+
+        try {
+            return this.databaseInterfacer.getVariablesFromArea(getParams.db,
+                                                                getParams.params,
+                                                                getParams.optionalParams)
+        } finally {
+            getParams.db.close()
+        }
+    }
+
+    List<LinkedHashMap> getVariablesFromGroup(Request req, Response res) {
+        def getParams = this.initializeGetVariables(req,res)
+
+        try {
+            return this.databaseInterfacer.getVariablesFromGroup(getParams.db,
+                                                                 getParams.params,
+                                                                 getParams.optionalParams)
+        } finally {
+            getParams.db.close()
+        }
+
+    }
+
+    List<LinkedHashMap> getVariables(Request req, Response res) {
+        res.type("application/json");
+        res.status(200);
+
+        def getParams = this.initializeGetVariables(req,res)
+
+        try {
+            return this.databaseInterfacer.getVariables(getParams.db,
+                                                        getParams.params,
+                                                        getParams.optionalParams)
+        } finally {
+            getParams.db.close()
+        }
+    }
+
     List<LinkedHashMap> get(Request req, Response res) {
         res.type("application/json");
         res.status(200);
@@ -85,12 +155,13 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
         try {
             return this.databaseInterfacer.get(getParams.db,
-                                                getParams.params,
-                                                getParams.optionalParams)
+                                               getParams.params,
+                                               getParams.optionalParams)
         } finally {
             getParams.db.close()
         }
     }
+
 
     List<LinkedHashMap> getFromArea(Request req, Response res) {
         res.type("application/json");

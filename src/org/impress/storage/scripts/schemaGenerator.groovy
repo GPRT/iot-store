@@ -35,9 +35,12 @@ try {
     graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "MeasurementVariable"))
 
     OClass sampleType = schema.createClass("Sample", restrictedType)
-    sampleType.createProperty("timestamp", OType.DATETIME)
-    sampleType.createProperty("measurementVariable", OType.LINK, measurementVariableType)
     sampleType.createProperty("value", OType.DOUBLE)
+    sampleType.createProperty("timestamp", OType.DATETIME)
+
+    OClass samplesType = schema.createClass("Samples", restrictedType)
+    samplesType.createProperty("variable", OType.LINK)
+    samplesType.createProperty("samples", OType.EMBEDDEDLIST, sampleType)
 
     OClass logType = schema.createClass("Log", restrictedType)
     logType.createProperty("sum", OType.LINKMAP, sampleType)
@@ -46,7 +49,7 @@ try {
 
     OClass minuteType = schema.createClass("Minute", restrictedType)
     minuteType.createProperty("log", OType.LINK, logType)
-    minuteType.createProperty("sample", OType.LINKLIST)
+    minuteType.createProperty("sample", OType.LINKMAP, samplesType)
     minuteType.createProperty("lastMeasurement", OType.LINK, minuteType)
 
     OClass hourType = schema.createClass("Hour", restrictedType)
@@ -137,6 +140,10 @@ try {
     OrientEdgeType canActuateType = graph.createEdgeType("CanActuate")
     canActuateType.createProperty("in", OType.LINK, resourceType)
     canActuateType.createProperty("out", OType.LINK, measurementVariableType)
+
+    OrientEdgeType deviceCanMeasureType = graph.createEdgeType("CanMeasure")
+    deviceCanMeasureType.createProperty("in", OType.LINK, measurementVariableType)
+    deviceCanMeasureType.createProperty("out", OType.LINK, resourceType)
 
     graph.commit()
 } finally {

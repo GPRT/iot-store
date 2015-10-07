@@ -96,7 +96,8 @@ class SearchHelpers {
                                                          Date endTimestamp,
                                                          String granularity,
                                                          List pageRange,
-                                                         List variablesRids=[]) {
+                                                         ORecordId variableRid) {
+        def variableUrl = Endpoints.ridToUrl(variableRid).toString()
         def granularityValue = Granularity.valueOf(granularity)
         def begin = beginTimestamp
         def end = endTimestamp
@@ -112,25 +113,16 @@ class SearchHelpers {
             yearMap.getAt(it)
         } - [null]
 
-        def variablesUrls = [:]
-        def extractAggregatedValues = {
-            aggregation,variableRid,map ->
-                if(!variablesUrls[variableRid])
-                    variablesUrls.put(variableRid, Endpoints.ridToUrl(new ORecordId(variableRid)))
-                if(variablesRids.isEmpty() || variableRid in variablesRids)
-                    map.put(variablesUrls[variableRid], aggregation.getRecord().field('value'))
-        }
-
         def granularityHierarchy = ['Year':'Month','Month':'Day','Day':'Hour','Hour':'Minute','Minute':'Sample']
         def findSubSet = {
             node, lowerGranularity, func ->
-                if(resultsSize <= pageSize) {
+                if(resultsSize < pageSize) {
                     def lowerGranValue = Granularity.valueOf((lowerGranularity + 's').toUpperCase())
                     def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
-                    if (lowerGranularity.toString() != 'Sample')
+                    if (lowerGranularity != 'Sample')
                         measurementPipe = measurementPipe.sort { a, b -> b.key.toInteger() <=> a.key.toInteger() }
                     else
-                        measurementPipe = measurementPipe.reverse()
+                        measurementPipe = measurementPipe[variableRid].field('samples')
 
                     measurementPipe.each {
                         nodeInfo ->
@@ -147,14 +139,11 @@ class SearchHelpers {
                                             def sumMap = [:]
                                             def meanMap = [:]
 
-                                            log.field('sum').each {
-                                                variableRid, sum ->
-                                                    extractAggregatedValues(sum, variableRid, sumMap)
-                                            }
-                                            log.field('mean').each {
-                                                variableRid, mean ->
-                                                    extractAggregatedValues(mean, variableRid, meanMap)
-                                            }
+                                            def sum = log.field('sum')[variableRid]
+                                            sumMap.put(variableUrl, sum.getRecord().field('value'))
+
+                                            def mean = log.field('mean')[variableRid]
+                                            meanMap.put(variableUrl, mean.getRecord().field('value'))
 
                                             resultsSize += 1
                                             pageIndex += 1
@@ -169,20 +158,14 @@ class SearchHelpers {
                                 }
                             }
                             else {
-                                if (variablesRids.isEmpty() || nodeInfo.getRecord().field('measurementVariable')
-                                        .getIdentity().toString() in variablesRids) {
-                                    if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
-                                        def sampleRecord = nodeInfo.getRecord()
-                                        resultsSize += 1
-                                        pageIndex += 1
-                                        results.add([value: sampleRecord.field('value'),
-                                                     measurementVariable: Endpoints.ridToUrl(
-                                                             sampleRecord.field('measurementVariable')
-                                                                     .getIdentity()),
-                                                     timestamp: sampleRecord.field('timestamp')])
-                                    }
-                                    else pageIndex += 1
+                                if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
+                                    def sampleRecord = nodeInfo.getRecord()
+                                    resultsSize += 1
+                                    pageIndex += 1
+                                    results.add([value: sampleRecord.field('value'),
+                                                 timestamp: sampleRecord.field('timestamp')])
                                 }
+                                else pageIndex += 1
                             }
                     }
                 }
@@ -192,6 +175,7 @@ class SearchHelpers {
         yearMap.collect{ index, year ->
             findSubSet(year,'Month',findSubSet)
         }
+
         return results
     }
 }

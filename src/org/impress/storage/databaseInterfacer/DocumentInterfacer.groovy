@@ -15,7 +15,7 @@ abstract class DocumentInterfacer extends ClassInterfacer implements DocumentExc
     abstract protected LinkedHashMap generateDocumentProperties(ODatabaseDocumentTx db, HashMap data, HashMap optionalData)
     abstract protected void generateDocumentRelations(ODatabaseDocumentTx db, ODocument document, HashMap data, HashMap optionalData)
 
-    protected final LinkedHashMap create(ODatabaseDocumentTx db,
+    protected LinkedHashMap create(ODatabaseDocumentTx db,
                                          HashMap data,
                                          HashMap optionalData = [:]) {
         if (!(this.getFieldNames() == data.keySet()))
