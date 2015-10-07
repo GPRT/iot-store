@@ -116,10 +116,10 @@ class SearchHelpers {
         def granularityHierarchy = ['Year':'Month','Month':'Day','Day':'Hour','Hour':'Minute','Minute':'Sample']
         def findSubSet = {
             node, lowerGranularity, func ->
-                if(resultsSize <= pageSize) {
+                if(resultsSize < pageSize) {
                     def lowerGranValue = Granularity.valueOf((lowerGranularity + 's').toUpperCase())
                     def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
-                    if (lowerGranularity.toString() != 'Sample')
+                    if (lowerGranularity != 'Sample')
                         measurementPipe = measurementPipe.sort { a, b -> b.key.toInteger() <=> a.key.toInteger() }
                     else
                         measurementPipe = measurementPipe[variableRid].field('samples')
@@ -175,6 +175,7 @@ class SearchHelpers {
         yearMap.collect{ index, year ->
             findSubSet(year,'Month',findSubSet)
         }
+
         return results
     }
 }
