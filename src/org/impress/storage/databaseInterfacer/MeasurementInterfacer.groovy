@@ -229,9 +229,10 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         parent.getVertices(Direction.OUT,"CanMeasure").collect{
-            this.orientTransformer.fromOVertex(it)
+            [(Endpoints.ridToUrl(it.getIdentity())):this.orientTransformer.fromOVertex(it)]
         }
     }
+
     protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                           Map params = [:],
                                           Map optionalParams = [:],
@@ -361,8 +362,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
         def variableVertex = graph.getVertex(variableRid)
         def resourceVertices = parent.getVertices(Direction.OUT,"CanMeasure").toList()
-        if (!(variableVertex in resourceVertices))
-            parent.addEdge("CanMeasure",variableVertex)
+        if (!(variableVertex in resourceVertices)) {
+            parent.addEdge("CanMeasure", variableVertex)
+            parent.save()
+            graph.commit()
+        }
 
         def dateBuilder = {
             granularity ->
