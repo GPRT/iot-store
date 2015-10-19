@@ -494,9 +494,9 @@ class MeasurementInterfacer extends DocumentInterfacer {
                             new LinkedHashMap(), currentGranularity)
 
                     if (rightBranch.size()==0) {
-                        def lastMeasurement = currentMap
-                                .sort({ a, b -> b.key <=> a.key })
-                                .find({ it.key.toInteger() < currentDate })
+                        def lastMeasurement = currentMap.sort({
+                                                    a, b -> b.key.toInteger() <=> a.key.toInteger()
+                                                }).find({ it.key.toInteger() < currentDate })
                         if (lastMeasurement)
                             rightBranch.add(lastMeasurement.value.getRecord())
                     }

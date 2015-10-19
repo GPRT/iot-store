@@ -104,6 +104,8 @@ class SearchHelpers {
         def results = []
         def resultsSize = 0
         def pageIndex = 0
+        def reachedFirst = false
+        def reachedLast = false
         def pageSize = pageRange[1] - pageRange[0]
 
         def yearRange = (begin.year + 1900..end.year + 1900)
@@ -114,9 +116,21 @@ class SearchHelpers {
         } - [null]
 
         def granularityHierarchy = ['Year':'Month','Month':'Day','Day':'Hour','Hour':'Minute','Minute':'Sample']
+        def granularityToDate = {
+            date ->
+                ['Year'  : date.year + 1900,
+                 'Month' : date.month + 1,
+                 'Day'   : date.date,
+                 'Hour'  : date.hours,
+                 'Minute': date.minutes]
+        }
+
+        def granularityToEndDate = granularityToDate(end)
+        def granularityToBeginDate = granularityToDate(begin)
+
         def findSubSet = {
             node, lowerGranularity, func ->
-                if(resultsSize < pageSize) {
+                if(resultsSize < pageSize && reachedLast == false) {
                     def lowerGranValue = Granularity.valueOf((lowerGranularity + 's').toUpperCase())
                     def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
                     if (lowerGranularity != 'Sample')
@@ -126,54 +140,72 @@ class SearchHelpers {
 
                     measurementPipe.each {
                         nodeInfo ->
-                            if (lowerGranularity.toString() != 'Sample') {
-                                def lowerRid = nodeInfo.value
-                                def lowerNode = lowerRid.getRecord()
+                                if (lowerGranularity.toString() != 'Sample') {
 
-                                if (lowerGranValue < granularityValue)
-                                    func(lowerNode, granularityHierarchy[lowerGranularity], func)
-                                else {
-                                    if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]){
-                                        def log = lowerNode.field('log').getRecord()
-                                        if(log.field('sum')) {
-                                            def sumMap = [:]
-                                            def meanMap = [:]
+                                    if ((reachedFirst == true || nodeInfo.key.toInteger() <=
+                                            granularityToEndDate[lowerGranularity]) && !reachedLast) {
+                                        def lowerRid = nodeInfo.value
+                                        def lowerNode = lowerRid.getRecord()
 
-                                            def sum = log.field('sum')[variableRid]
-                                            sumMap.put(variableUrl, sum.getRecord().field('value'))
+                                        if (lowerGranValue < granularityValue)
+                                            func(lowerNode, granularityHierarchy[lowerGranularity], func)
+                                        else {
+                                            reachedFirst = true
+                                            if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
+                                                def log = lowerNode.field('log').getRecord()
+                                                if (log.field('sum')) {
+                                                    def sumMap = [:]
+                                                    def meanMap = [:]
 
-                                            def mean = log.field('mean')[variableRid]
-                                            meanMap.put(variableUrl, mean.getRecord().field('value'))
+                                                    def sum = log.field('sum')[variableRid]
+                                                    sumMap.put(variableUrl, sum.getRecord().field('value'))
 
-                                            resultsSize += 1
-                                            pageIndex += 1
+                                                    def mean = log.field('mean')[variableRid]
+                                                    meanMap.put(variableUrl, mean.getRecord().field('value'))
 
-                                            results.add([sum      : sumMap,
-                                                         mean     : meanMap,
-                                                         timestamp: log.field('timestamp')])
+                                                    resultsSize += 1
+                                                    pageIndex += 1
+
+                                                    def timestamp = log.field('timestamp')
+                                                    if(timestamp <= begin)
+                                                        reachedLast = true
+
+                                                    results.add([sum      : sumMap,
+                                                                 mean     : meanMap,
+                                                                 timestamp: timestamp])
+                                                } else null
+                                            } else pageIndex += 1
                                         }
-                                        else null
                                     }
-                                    else pageIndex += 1
+                                } else {
+                                    reachedFirst = true
+                                    if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
+                                        def sampleRecord = nodeInfo.getRecord()
+                                        def timestamp = sampleRecord.field('timestamp')
+                                        if(timestamp <= begin)
+                                            reachedLast = true
+
+                                        resultsSize += 1
+                                        pageIndex += 1
+
+                                        results.add([value    : sampleRecord.field('value'),
+                                                     timestamp: timestamp])
+
+
+                                    } else pageIndex += 1
                                 }
-                            }
-                            else {
-                                if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
-                                    def sampleRecord = nodeInfo.getRecord()
-                                    resultsSize += 1
-                                    pageIndex += 1
-                                    results.add([value: sampleRecord.field('value'),
-                                                 timestamp: sampleRecord.field('timestamp')])
-                                }
-                                else pageIndex += 1
-                            }
+
                     }
                 }
                 else return
         }
 
         yearMap.collect{ index, year ->
-            findSubSet(year,'Month',findSubSet)
+            if(index.toInteger() < end.year+1900)
+                end = new Date('23:59:59 12/31/'+(end.year+1900).toString())
+
+            if(index.toInteger() <= end.year+1900)
+                findSubSet(year,'Month',findSubSet)
         }
 
         return results
