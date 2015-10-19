@@ -80,7 +80,7 @@ class DeviceInterfacer extends VertexInterfacer {
 
         for (groupUrl in groupUrls) {
             if (String.isInstance(groupUrl) && !groupUrl.isEmpty()) {
-                OrientVertex group = getVertexByUrl(db, areaUrl)
+                OrientVertex group = getVertexByUrl(db, groupUrl)
                 if (group) {
                     if (group.getLabel() != 'Group')
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
