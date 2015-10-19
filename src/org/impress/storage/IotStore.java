@@ -6,6 +6,9 @@ import org.impress.storage.utils.Endpoints;
 import org.impress.storage.utils.JsonTransformer;
 import org.impress.storage.exceptions.ResponseErrorException;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import static spark.Spark.*;
 
 public class IotStore {
@@ -28,7 +31,18 @@ public class IotStore {
 
         final JsonTransformer jsonTransformer = new JsonTransformer();
 
-        Endpoints.setMainUrl("http://192.168.0.106:4567");
+        String iotStoreUrl = System.getProperty("iotStore.url");
+
+        if (iotStoreUrl == null)
+            throw new RuntimeException("iotStore.url was not found in your JVM properties");
+
+        try {
+            URL mainUrl = new URL(iotStoreUrl);
+            Endpoints.setMainUrl(mainUrl.toString());
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("[" + iotStoreUrl + "] is not a valid URL for your iotStore.url property");
+        }
+
         Endpoints.addClass("area", "areas");
         Endpoints.addClass("measurementvariable", "variables");
         Endpoints.addClass("resource", "devices");

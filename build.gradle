@@ -29,6 +29,10 @@ repositories {
     mavenCentral()
 }
 
+run {
+    systemProperties System.getProperties()
+}
+
 task generateSchema(type: JavaExec) {
     main = 'org.impress.storage.scripts.schemaGenerator'
     classpath = sourceSets.main.runtimeClasspath
