@@ -85,6 +85,9 @@ class AreaInterfacer extends VertexInterfacer {
                 OrientVertex device = getVertexByUrl(db, resourceUrl)
 
                 if (device) {
+                    if (device.getEdges(vertex, Direction.IN, "HasResource"))
+                        continue
+
                     def numAreas = device.countEdges(Direction.IN, "HasResource")
 
                     if (numAreas > 0)
