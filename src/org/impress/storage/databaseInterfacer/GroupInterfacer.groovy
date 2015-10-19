@@ -1,6 +1,7 @@
 package org.impress.storage.databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
@@ -61,6 +62,9 @@ class GroupInterfacer extends VertexInterfacer {
             if (String.isInstance(deviceUrl) && !deviceUrl.isEmpty()) {
                 OrientVertex device = getVertexByUrl(db, deviceUrl)
                 if (device) {
+                    if (device.getEdges(vertex, Direction.IN, "GroupsResource"))
+                        continue
+
                     if (device.getLabel() != 'Resource')
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                                 400,
