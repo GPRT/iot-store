@@ -1,28 +1,35 @@
 package org.impress.storage.scripts
 
+import com.orientechnologies.orient.client.remote.OServerAdmin
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.orientechnologies.orient.core.metadata.schema.OSchema
 import com.orientechnologies.orient.core.metadata.schema.OType
+import com.orientechnologies.orient.core.metadata.security.ORole
 import com.orientechnologies.orient.core.metadata.security.OSecurity
 import com.tinkerpop.blueprints.Parameter
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType
-import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType
 
-OrientGraphFactory factory = new OrientGraphFactory("remote:localhost/iot").setupPool(1, 10)
+admin = new OServerAdmin('remote:localhost/iot');
+admin.connect("root", "root");
+admin.createDatabase("iot", "graph", "plocal");
+admin.close()
 
-OrientGraphNoTx graph = factory.getNoTx()
-
-OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
-sm.createUser("support", "support", sm.getRole("reader"))
-sm.createUser("test", "123", sm.getRole("writer"), sm.getRole("reader"))
-sm.createUser("ufpe", "123", sm.getRole("writer"), sm.getRole("reader"))
-sm.createUser("ufam", "123", sm.getRole("writer"), sm.getRole("reader"))
-sm.createUser("fit", "123", sm.getRole("writer"), sm.getRole("reader"))
+OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/iot")
 
 try {
+    OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
+    ORole writer = sm.getRole("writer")
+    ORole reader = sm.getRole("reader")
+
+    sm.createUser("support", "support", reader)
+    sm.createUser("test", "123", writer, reader)
+    sm.createUser("ufpe", "123", writer, reader)
+    sm.createUser("ufam", "123", writer, reader)
+    sm.createUser("fit", "123", writer, reader)
+
     OSchema schema = graph.getRawGraph().getMetadata().getSchema()
 
     OClass restrictedType = schema.getClass("ORestricted")
@@ -149,4 +156,3 @@ try {
 } finally {
     graph.shutdown();
 }
-
