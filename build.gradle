@@ -33,7 +33,12 @@ run {
     systemProperties System.getProperties()
 }
 
-task generateSchema(type: JavaExec) {
-    main = 'org.impress.storage.scripts.schemaGenerator'
+task createdb(type: JavaExec) {
+    main = 'org.impress.storage.scripts.createdb'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task dropdb(type: JavaExec) {
+    main = 'org.impress.storage.scripts.dropdb'
     classpath = sourceSets.main.runtimeClasspath
 }
