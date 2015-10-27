@@ -311,7 +311,9 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         parent.getVertices(Direction.OUT,"CanMeasure").collect{
-            [(Endpoints.ridToUrl(it.getIdentity())):this.orientTransformer.fromOVertex(it)]
+            def variableMap = this.orientTransformer.fromOVertex(it)
+            variableMap.put("id",(Endpoints.ridToUrl(it.getIdentity())))
+            variableMap
         }
     }
 
