@@ -5,12 +5,12 @@ import com.orientechnologies.orient.core.exception.OValidationException
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
-import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
 import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.id.ORecordId
-import org.impress.storage.utils.Endpoints
 import org.impress.storage.utils.SearchHelpers
+import org.impress.storage.exceptions.ResponseErrorCode
+import org.impress.storage.utils.Endpoints
 
 class MeasurementInterfacer extends DocumentInterfacer {
     enum Granularity {

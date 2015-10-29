@@ -6,8 +6,8 @@ import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
-import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
+import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.utils.Endpoints
 import org.impress.storage.utils.OrientTransformer
 
