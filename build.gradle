@@ -1,46 +1,10 @@
-allprojects {
+subprojects {
     apply plugin: 'java'
     apply plugin: 'groovy'
-    apply plugin: 'maven'
-    apply plugin: 'application'
-
-    group = 'org.impress.storage'
-    version = '0.1'
-
-    mainClassName = "org.impress.storage.IotStore"
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
 
-    sourceSets {
-        main {
-            java { srcDirs = [] }
-            groovy { srcDirs "storage/src", "hooks/src" }
-        }
-    }
-
-    dependencies {
-        compile "org.codehaus.groovy:groovy-all:2.4.3"
-        compile "com.sparkjava:spark-core:2.2"
-        compile "com.orientechnologies:orientdb-graphdb:2.0.14"
-        compile "com.google.code.gson:gson:2.3.1"
-    }
-
-    repositories {
-        mavenCentral()
-    }
-}
-
-run {
-    systemProperties System.getProperties()
-}
-
-task createdb(type: JavaExec) {
-    main = 'org.impress.storage.scripts.createdb'
-    classpath = sourceSets.main.runtimeClasspath
-}
-
-task dropdb(type: JavaExec) {
-    main = 'org.impress.storage.scripts.dropdb'
-    classpath = sourceSets.main.runtimeClasspath
+    group = 'org.impress.storage'
+    version = '0.1'
 }

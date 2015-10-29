@@ -1,1 +1,1 @@
-include 'storage', 'hooks'
+include ':storage', ':hooks'

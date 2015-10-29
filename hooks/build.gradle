@@ -1,0 +1,12 @@
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+dependencies {
+    compile "org.codehaus.groovy:groovy-all:2.4.3"
+    compile "com.orientechnologies:orientdb-graphdb:2.0.14"
+}
+
+repositories {
+    mavenCentral()
+}
