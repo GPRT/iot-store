@@ -84,7 +84,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
     protected final Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                                 HashMap params = [:],
                                                 String className = this.className) {
-        def results = Object.getDocuments(db, params, className)
+        def results = this.getDocuments(db, params, className)
 
         return results.collect {
             return recordToMap(db, it)
