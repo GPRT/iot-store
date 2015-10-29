@@ -9,8 +9,8 @@ import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
-import org.impress.storage.exceptions.ResponseErrorException
 import org.impress.storage.exceptions.VertexExceptionThrower
+import org.impress.storage.exceptions.ResponseErrorException
 
 abstract class VertexInterfacer extends ClassInterfacer implements VertexExceptionThrower {
 
@@ -84,7 +84,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
     protected final Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
                                                 HashMap params = [:],
                                                 String className = this.className) {
-        def results = super.getDocuments(db, params, className)
+        def results = Object.getDocuments(db, params, className)
 
         return results.collect {
             return recordToMap(db, it)

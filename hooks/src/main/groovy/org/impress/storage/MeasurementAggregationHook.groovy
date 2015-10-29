@@ -1,4 +1,4 @@
-package org.impress.hooks
+package org.impress.storage
 
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.hook.ODocumentHookAbstract

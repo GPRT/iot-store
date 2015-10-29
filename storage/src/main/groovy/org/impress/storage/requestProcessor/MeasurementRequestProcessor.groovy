@@ -3,9 +3,8 @@ package org.impress.storage.requestProcessor
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import spark.Request
 import spark.Response
-
-import org.impress.storage.databaseInterfacer.MeasurementInterfacer
 import org.impress.storage.utils.InputValidator
+import org.impress.storage.databaseInterfacer.MeasurementInterfacer
 
 class MeasurementRequestProcessor extends RequestProcessor {
 

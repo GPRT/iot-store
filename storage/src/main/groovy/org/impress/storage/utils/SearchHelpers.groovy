@@ -2,14 +2,13 @@ package org.impress.storage.utils
 
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
-import org.impress.storage.utils.InputValidator.Granularity
 
 class SearchHelpers {
     static final Iterable<LinkedHashMap> BFSMeasurementFinder(ODocument measurements,
                                                          Date beginTimestamp,
                                                          Date endTimestamp,
                                                          String granularity) {
-        def granularityValue = Granularity.valueOf(granularity)
+        def granularityValue = InputValidator.Granularity.valueOf(granularity)
         def begin = beginTimestamp
         def end = endTimestamp
         def results = []
@@ -61,15 +60,15 @@ class SearchHelpers {
                 end = new Date("12/31/2000 23:59:59")
         }
 
-        if (granularityValue >= Granularity.MONTHS) {
+        if (granularityValue >= InputValidator.Granularity.MONTHS) {
             def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12) - [null]
-            if (granularityValue >= Granularity.DAYS) {
+            if (granularityValue >= InputValidator.Granularity.DAYS) {
                 def days = findSubSet(months, begin.date, end.date, 'day', 31) - [null]
-                if (granularityValue >= Granularity.HOURS) {
+                if (granularityValue >= InputValidator.Granularity.HOURS) {
                     def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23) - [null]
-                    if (granularityValue >= Granularity.MINUTES) {
+                    if (granularityValue >= InputValidator.Granularity.MINUTES) {
                         def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59) - [null]
-                        if (granularityValue >= Granularity.SAMPLES) {
+                        if (granularityValue >= InputValidator.Granularity.SAMPLES) {
                             minutes.each {
                                 min ->
                                     min.field('sample').each {
@@ -98,7 +97,7 @@ class SearchHelpers {
                                                          List pageRange,
                                                          ORecordId variableRid) {
         def variableUrl = Endpoints.ridToUrl(variableRid).toString()
-        def granularityValue = Granularity.valueOf(granularity)
+        def granularityValue = InputValidator.Granularity.valueOf(granularity)
         def begin = beginTimestamp
         def end = endTimestamp
         def results = []
@@ -131,7 +130,7 @@ class SearchHelpers {
         def findSubSet = {
             node, lowerGranularity, func ->
                 if(resultsSize < pageSize && reachedLast == false) {
-                    def lowerGranValue = Granularity.valueOf((lowerGranularity + 's').toUpperCase())
+                    def lowerGranValue = InputValidator.Granularity.valueOf((lowerGranularity + 's').toUpperCase())
                     def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
                     if (lowerGranularity != 'Sample')
                         measurementPipe = measurementPipe.sort { a, b -> b.key.toInteger() <=> a.key.toInteger() }

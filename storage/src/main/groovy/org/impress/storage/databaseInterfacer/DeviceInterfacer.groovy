@@ -2,9 +2,9 @@ package org.impress.storage.databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
+import com.orientechnologies.orient.core.record.impl.ODocument
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
-import com.orientechnologies.orient.core.record.impl.ODocument
 
 class DeviceInterfacer extends VertexInterfacer {
     def DeviceInterfacer() {
