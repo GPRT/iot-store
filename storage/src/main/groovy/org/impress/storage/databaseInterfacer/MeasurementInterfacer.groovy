@@ -11,11 +11,9 @@ import com.orientechnologies.orient.core.id.ORecordId
 import org.impress.storage.utils.SearchHelpers
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.utils.Endpoints
+import org.impress.storage.utils.Granularity.GranularityValues
 
 class MeasurementInterfacer extends DocumentInterfacer {
-    enum Granularity {
-        YEARS, MONTHS, DAYS, HOURS, MINUTES, SAMPLES
-    }
 
     def MeasurementInterfacer() {
         super("Sample",
@@ -164,7 +162,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                                               String className = this.className,
                                                               ArrayList devices) {
         def mean = { it.sum()/it.size() }
-        def granularity = Granularity.valueOf(params.granularity.toString())
+        def granularity = GranularityValues.valueOf(params.granularity.toString())
 
         def measurementPipe = devices.collect {
             this.get(db, params,
@@ -172,7 +170,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                      variableId:optionalParams.variableId],
                      className)
         }
-        if(granularity < Granularity.SAMPLES) {
+        if(granularity < GranularityValues.SAMPLES) {
             measurementPipe.sum().groupBy({ it.timestamp })
                     .collect {
                 def sumMerge = [:]
@@ -454,17 +452,17 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
         def dateBuilder = {
             granularity ->
-                def granularityValue = Granularity.valueOf(granularity.toUpperCase()+'S')
+                def granularityValue = GranularityValues.valueOf(granularity.toUpperCase()+'S')
                 def newDate = new Date('01/01/01 00:00:00')
-                if (granularityValue >= Granularity.YEARS)
+                if (granularityValue >= GranularityValues.YEARS)
                     newDate.year = date.year
-                if (granularityValue >= Granularity.MONTHS)
+                if (granularityValue >= GranularityValues.MONTHS)
                     newDate.month = date.month
-                if (granularityValue >= Granularity.DAYS)
+                if (granularityValue >= GranularityValues.DAYS)
                     newDate.date = date.date
-                if (granularityValue >= Granularity.HOURS)
+                if (granularityValue >= GranularityValues.HOURS)
                     newDate.hours = date.hours
-                if (granularityValue >= Granularity.MINUTES)
+                if (granularityValue >= GranularityValues.MINUTES)
                     newDate.minutes = date.minutes
                 newDate
         }
