@@ -248,7 +248,7 @@ class InputValidator {
        return ['beginTimestamp':newBegin,'endTimestamp':newEnd]
    }
 
-    static Granularity processGranularityParam(String granularity) {
+    static Granularity.GranularityValues processGranularityParam(String granularity) {
         try{
             if (!granularity)
                 return GranularityValues.SAMPLES
