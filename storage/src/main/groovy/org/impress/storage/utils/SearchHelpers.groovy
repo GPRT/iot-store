@@ -2,13 +2,15 @@ package org.impress.storage.utils
 
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
+import org.impress.storage.utils.Granularity.GranularityValues
 
 class SearchHelpers {
+
     static final Iterable<LinkedHashMap> BFSMeasurementFinder(ODocument measurements,
                                                          Date beginTimestamp,
                                                          Date endTimestamp,
                                                          String granularity) {
-        def granularityValue = InputValidator.Granularity.valueOf(granularity)
+        def granularityValue = GranularityValues.valueOf(granularity)
         def begin = beginTimestamp
         def end = endTimestamp
         def results = []
@@ -97,7 +99,7 @@ class SearchHelpers {
                                                          List pageRange,
                                                          ORecordId variableRid) {
         def variableUrl = Endpoints.ridToUrl(variableRid).toString()
-        def granularityValue = InputValidator.Granularity.valueOf(granularity)
+        def granularityValue = GranularityValues.valueOf(granularity)
         def begin = beginTimestamp
         def end = endTimestamp
         def results = []
@@ -130,7 +132,7 @@ class SearchHelpers {
         def findSubSet = {
             node, lowerGranularity, func ->
                 if(resultsSize < pageSize && reachedLast == false) {
-                    def lowerGranValue = InputValidator.Granularity.valueOf((lowerGranularity + 's').toUpperCase())
+                    def lowerGranValue = GranularityValues.valueOf((lowerGranularity + 's').toUpperCase())
                     def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
                     if (lowerGranularity != 'Sample')
                         measurementPipe = measurementPipe.sort { a, b -> b.key.toInteger() <=> a.key.toInteger() }

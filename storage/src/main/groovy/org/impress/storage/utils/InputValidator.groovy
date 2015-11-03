@@ -4,12 +4,9 @@ import groovy.json.JsonException
 import groovy.json.JsonSlurper
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
+import org.impress.storage.utils.Granularity.GranularityValues
 
 class InputValidator {
-
-    static enum Granularity {
-        YEARS,MONTHS,DAYS,HOURS,MINUTES,SAMPLES
-    }
 
     static String validateQueryParams(fields, allowedQueryParams) {
         fields.each { queryParamName ->
@@ -254,31 +251,15 @@ class InputValidator {
     static Granularity processGranularityParam(String granularity) {
         try{
             if (!granularity)
-                return Granularity.SAMPLES
+                return GranularityValues.SAMPLES
             else
-                return Granularity.valueOf(granularity)
-
+                return GranularityValues.valueOf(granularity)
         }
         catch (IllegalArgumentException e){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,
                     400,
                     "Granularity ["+granularity+"] is invalid!",
                     "Possible granularities are: YEARS,MONTHS,DAYS,HOURS,MINUTES,SAMPLES")
-        }
-    }
-
-    static Set processMeasurementVariablesParam(String measurementVariablesURLs) {
-        if(measurementVariablesURLs) {
-            def measurementVariables = measurementVariablesURLs.split(",")
-            measurementVariables.each {
-                if (it.isEmpty()) {
-                    throw new ResponseErrorException(ResponseErrorCode.INVALID_MEASUREMENT_VARIABLE,
-                            400,
-                            "MeasurementVariables is invalid",
-                            "The list cannot contain empty urls.")
-                }
-            }
-            return measurementVariables
         }
     }
 }
