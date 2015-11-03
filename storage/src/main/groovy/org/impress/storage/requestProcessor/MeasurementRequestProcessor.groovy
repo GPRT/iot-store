@@ -63,6 +63,9 @@ class MeasurementRequestProcessor extends RequestProcessor {
         InputValidator.validateQueryParams(queryFields, allowedQueryParams)
 
         Long id = InputValidator.processId(req.params(":id"))
+        Long variableId = req.params(":variableId")
+        if(variableId != null)
+            variableId = InputValidator.processId(req.params(":variableId"))
 
         def pageParam = req.queryParams("page")
         def pageLimitParam = req.queryParams("pageLimit")
@@ -77,7 +80,7 @@ class MeasurementRequestProcessor extends RequestProcessor {
         [db:db,
          params:params,
          optionalParams:
-                 [id:id.toLong()]]
+                 [id:id.toLong(), variableId: variableId]]
     }
 
     LinkedHashMap create(Request req, Response res) {

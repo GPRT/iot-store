@@ -295,6 +295,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
         OrientGraph graph = new OrientGraph(db)
         OrientVertex parent
         def networkId = optionalParams.id
+        def variableId = optionalParams.variableId
 
         if (networkId >= 0) {
             def clusterId = this.getClusterId(db, 'Resource')
@@ -308,11 +309,15 @@ class MeasurementInterfacer extends DocumentInterfacer {
             }
         }
 
-        parent.getVertices(Direction.OUT,"CanMeasure").collect{
-            def variableMap = this.orientTransformer.fromOVertex(it)
-            variableMap.put("id",(Endpoints.ridToUrl(it.getIdentity())))
-            variableMap
-        }
+        parent.getVertices(Direction.OUT, "CanMeasure").collect {
+            def devId = it.getIdentity().getClusterPosition()
+            if (variableId == null || devId == variableId) {
+                def variableMap = this.orientTransformer.fromOVertex(it)
+                variableMap.put("id", (Endpoints.ridToUrl(it.getIdentity())))
+                variableMap
+            }
+            else null
+        } - [null]
     }
 
     protected Iterable<LinkedHashMap> get(ODatabaseDocumentTx db,
