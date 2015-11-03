@@ -72,6 +72,7 @@ public class IotStore {
         delete(devicesPath + "/:id", "application/json", deviceRequestProcessor::delete, jsonTransformer);
         post(devicesPath, "application/json", deviceRequestProcessor::create, jsonTransformer);
         get(devicesPath + "/:id/variables", "application/json", measurementRequestProcessor::getVariables, jsonTransformer);
+        get(devicesPath + "/:id/variables/:variableId", "application/json", measurementRequestProcessor::getVariables, jsonTransformer);
         get(devicesPath + "/:id/variables/:variableId/measurements", "application/json", measurementRequestProcessor::get, jsonTransformer);
         post(devicesPath + "/:id/measurements", "application/json", measurementRequestProcessor::create, jsonTransformer);
 
