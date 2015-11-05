@@ -21,13 +21,6 @@ class GroupInterfacer extends VertexInterfacer {
                 "The group does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
-                404,
-                "Group called [" + name + "] was not found!",
-                "The group does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,

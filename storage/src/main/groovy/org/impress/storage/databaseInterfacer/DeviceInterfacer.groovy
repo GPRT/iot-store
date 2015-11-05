@@ -22,13 +22,6 @@ class DeviceInterfacer extends VertexInterfacer {
                 "The device does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
-                404,
-                "Device called [" + name + "] was not found!",
-                "The device does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,

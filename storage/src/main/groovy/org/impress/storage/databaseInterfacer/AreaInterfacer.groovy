@@ -24,13 +24,6 @@ class AreaInterfacer extends VertexInterfacer {
                 "The area does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
-                404,
-                "Area called [" + name + "] was not found!",
-                "The area does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,
