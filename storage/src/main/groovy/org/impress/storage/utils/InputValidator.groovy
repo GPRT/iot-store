@@ -5,6 +5,7 @@ import groovy.json.JsonSlurper
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
 import org.impress.storage.utils.Granularity.GranularityValues
+import javax.xml.bind.DatatypeConverter
 
 class InputValidator {
 
@@ -220,30 +221,31 @@ class InputValidator {
     }
 
    static HashMap processTimestampsParam(String beginTimestamp, String endTimestamp) {
+       def dateConverter = new DatatypeConverter()
        def newBegin, newEnd
        try{
            if (!beginTimestamp)
                newBegin = new Date("01/01/01 00:00:00")
            else
-               newBegin = new Date(beginTimestamp)
+               newBegin = dateConverter.parseDateTime(beginTimestamp).getTime()
        }
        catch (IllegalArgumentException e){
            throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
                    400,
                    "beginTimestamp ["+beginTimestamp+"] is invalid!",
-                   'Possible format "MM/DD/YYYY hh:mm:ss"')
+                   'Use the ISO 8601 format. Example: "MM-DD-YYYYThh:mm:ssZ"')
        }
        try{
            if (!endTimestamp)
                newEnd = new Date()
            else
-               newEnd = new Date(endTimestamp)
+               newEnd = dateConverter.parseDateTime(endTimestamp).getTime()
        }
        catch (IllegalArgumentException e){
            throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
                    400,
                    "endTimestamp ["+endTimestamp+"] is invalid!",
-                   'Possible format "MM/DD/YYYY hh:mm:ss"')
+                   'Use the ISO 8601 format. Example: "MM-DD-YYYYThh:mm:ssZ"')
        }
        return ['beginTimestamp':newBegin,'endTimestamp':newEnd]
    }
