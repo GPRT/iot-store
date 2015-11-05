@@ -173,7 +173,7 @@ class SearchHelpers {
 
                                                     results.add([sum      : sumMap,
                                                                  mean     : meanMap,
-                                                                 timestamp: timestamp])
+                                                                 timestamp: timestamp.format("yyyy-MM-dd'T'HH:mm:ssX")])
                                                 } else null
                                             } else pageIndex += 1
                                         }
@@ -190,7 +190,7 @@ class SearchHelpers {
                                         pageIndex += 1
 
                                         results.add([value    : sampleRecord.field('value'),
-                                                     timestamp: timestamp])
+                                                     timestamp: timestamp.format("yyyy-MM-dd'T'HH:mm:ssX")])
 
 
                                     } else pageIndex += 1
