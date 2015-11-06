@@ -24,13 +24,6 @@ class SimulationInterfacer extends VertexInterfacer {
                 "The simulation does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
-                404,
-                "Simulation called [" + name + "] was not found!",
-                "The simulation does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,

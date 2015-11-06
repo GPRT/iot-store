@@ -21,13 +21,6 @@ class VariableInterfacer extends VertexInterfacer {
                 "The variable does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
-                404,
-                "Variable called [" + name + "] was not found!",
-                "The variable does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,

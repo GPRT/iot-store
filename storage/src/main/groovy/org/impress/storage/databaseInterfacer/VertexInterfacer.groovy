@@ -118,7 +118,7 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
 
             vertex.setProperties(properties)
 
-            for (edge in vertex.getEdges(Direction.IN)) {
+            for (edge in vertex.getEdges(Direction.BOTH)) {
                 graph.removeEdge(edge)
             }
 

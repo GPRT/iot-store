@@ -21,13 +21,6 @@ class GroupInterfacer extends VertexInterfacer {
                 "The group does not exist")
     }
 
-    void vertexNotFoundByIndex(String name) {
-        throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
-                404,
-                "Group called [" + name + "] was not found!",
-                "The group does not exist")
-    }
-
     void duplicatedVertex() {
         throw new ResponseErrorException(ResponseErrorCode.DUPLICATES_FOUND,
                 400,
@@ -62,9 +55,6 @@ class GroupInterfacer extends VertexInterfacer {
             if (String.isInstance(deviceUrl) && !deviceUrl.isEmpty()) {
                 OrientVertex device = getVertexByUrl(db, deviceUrl)
                 if (device) {
-                    if (device.getEdges(vertex, Direction.IN, "GroupsResource"))
-                        continue
-
                     if (device.getLabel() != 'Resource')
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                                 400,
