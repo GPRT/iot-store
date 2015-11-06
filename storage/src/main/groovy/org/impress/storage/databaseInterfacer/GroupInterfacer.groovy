@@ -55,9 +55,6 @@ class GroupInterfacer extends VertexInterfacer {
             if (String.isInstance(deviceUrl) && !deviceUrl.isEmpty()) {
                 OrientVertex device = getVertexByUrl(db, deviceUrl)
                 if (device) {
-                    if (device.getEdges(vertex, Direction.IN, "GroupsResource"))
-                        continue
-
                     if (device.getLabel() != 'Resource')
                         throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
                                 400,

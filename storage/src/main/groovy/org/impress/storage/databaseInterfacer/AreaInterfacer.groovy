@@ -14,6 +14,7 @@ class AreaInterfacer extends VertexInterfacer {
                 ["name": "name",
                  "domainData": "domainData"],
                 ["parentArea": "ifnull(in(\"HasArea\")[0],\"\") as parentArea",
+                 "areas": "ifnull(out(\"HasArea\"),[]) as areas",
                  "devices": "ifnull(out(\"HasResource\"),[]) as devices"])
     }
 
@@ -67,7 +68,32 @@ class AreaInterfacer extends VertexInterfacer {
                 parent.addEdge("HasArea", vertex)
             }
             else {
-                vertexNotFoundById(rid.clusterPosition)
+                throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
+                        404,
+                        "Area [" + parentAreaUrl + "] was not found!",
+                        "The area does not exist")
+            }
+        }
+
+        def areaUrls = data.areas.unique()
+
+        for (areaUrl in areaUrls) {
+            if (String.isInstance(areaUrl) && !areaUrl.isEmpty()) {
+                OrientVertex area = getVertexByUrl(db, areaUrl)
+                if (area) {
+                    if (area.getLabel() != 'Area')
+                        throw new ResponseErrorException(ResponseErrorCode.VALIDATION_ERROR,
+                                400,
+                                "[" + areaUrl + "] is not a valid id for an area!",
+                                "Choose an id for an area instead")
+
+                    vertex.addEdge("HasArea", area)
+                } else {
+                    throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
+                            404,
+                            "Area [" + areaUrl + "] was not found!",
+                            "The area does not exist")
+                }
             }
         }
 
@@ -78,9 +104,6 @@ class AreaInterfacer extends VertexInterfacer {
                 OrientVertex device = getVertexByUrl(db, resourceUrl)
 
                 if (device) {
-                    if (device.getEdges(vertex, Direction.IN, "HasResource"))
-                        continue
-
                     def numAreas = device.countEdges(Direction.IN, "HasResource")
 
                     if (numAreas > 0)
@@ -114,8 +137,8 @@ class AreaInterfacer extends VertexInterfacer {
             result['inheritedDevices'] = []
 
             def rid = record.field('id').getIdentity()
-            def osql = "select unionall(area) as areas, unionall(devices) as devices from " +
-                    "(select @this as area, out('HasResource') as devices from " +
+            def osql = "select unionall(areas) as areas, unionall(devices) as devices from " +
+                    "(select out('HasArea') as areas, out('HasResource') as devices from " +
                     "(traverse out('HasArea') from (select out('HasArea') from ${rid})))"
             db.command(new OSQLSynchQuery(osql)).execute().collect {
                 def records = this.orientTransformer.fromODocument(it)
