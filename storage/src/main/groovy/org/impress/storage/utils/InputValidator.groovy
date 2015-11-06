@@ -238,8 +238,11 @@ class InputValidator {
        try{
            if (!endTimestamp)
                newEnd = new Date()
-           else
+           else{
                newEnd = dateConverter.parseDateTime(endTimestamp).getTime()
+               if ((new Date()) < newEnd)
+                   newEnd = new Date()
+           }
        }
        catch (IllegalArgumentException e){
            throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
