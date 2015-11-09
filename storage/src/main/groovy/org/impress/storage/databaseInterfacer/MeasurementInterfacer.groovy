@@ -71,7 +71,9 @@ class MeasurementInterfacer extends DocumentInterfacer {
             generateDocumentRelations(db, document, data, optionalData)
             db.commit()
 
-            return this.orientTransformer.fromODocument(document)
+            def json = this.orientTransformer.fromODocument(document)
+            json['timestamp'] = data.timestamp
+            json
         }
         catch(OValidationException e) {
             invalidDocumentProperties()
