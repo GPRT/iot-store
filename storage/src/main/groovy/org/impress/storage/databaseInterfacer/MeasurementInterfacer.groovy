@@ -13,6 +13,8 @@ import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.utils.Endpoints
 import org.impress.storage.utils.Granularity.GranularityValues
 
+import javax.xml.bind.DatatypeConverter
+
 class MeasurementInterfacer extends DocumentInterfacer {
 
     def MeasurementInterfacer() {
@@ -22,6 +24,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                  "value"              : "value"],
                 [:])
     }
+
 
     void vertexNotFoundById(Long id) {
         throw new ResponseErrorException(ResponseErrorCode.VARIABLE_NOT_FOUND,
@@ -378,6 +381,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                                              HashMap data,
                                                              HashMap optionalData = [:]) {
         OrientGraph graph = new OrientGraph(db)
+        def dateConverter = new DatatypeConverter()
         def timestamp = data.timestamp
         def value = data.value
         def measurementVariableUrl = data.measurementVariable
@@ -405,18 +409,18 @@ class MeasurementInterfacer extends DocumentInterfacer {
                             "Choose an id for an area instead")
             }
             else {
-                vertexNotFoundById(rid.clusterPosition)
+                vertexNotFoundById(Endpoints.urlToRid(new URL(measurementVariableUrl)).clusterPosition)
             }
         }
 
         try {
-            timestamp = new Date(timestamp)
+            timestamp = dateConverter.parseDateTime(timestamp).getTime()
         }
         catch (IllegalArgumentException err2) {
             throw new ResponseErrorException(ResponseErrorCode.INVALID_TIMESTAMP,
                     400,
-                    "Timestamp [" + timestamp + "] is invalid!",
-                    'Possible format "MM/DD/YYYY hh:mm:ss"')
+                    "Timestamp ["+timestamp+"] is invalid!",
+                    'Use the ISO 8601 format. Example: "MM-DD-YYYYThh:mm:ssZ"')
         }
 
         return ["timestamp"          : timestamp,
@@ -429,9 +433,9 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                              HashMap data,
                                              HashMap optionalData = [:]) {
         OrientGraph graph = new OrientGraph(db)
-        def timestamp = data.timestamp
+        def dateConverter = new DatatypeConverter()
+        def date = dateConverter.parseDateTime(data.timestamp).getTime()
         def variableRid = Endpoints.urlToRid(new URL(data.measurementVariable))
-        def date = new Date(timestamp)
         def networkId = optionalData.networkId
         def leftBranch = []
         def rightBranch = []
