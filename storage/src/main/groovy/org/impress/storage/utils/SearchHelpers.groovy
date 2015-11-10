@@ -155,14 +155,14 @@ class SearchHelpers {
                                             if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
                                                 def log = lowerNode.field('log').getRecord()
                                                 if (log.field('sum')) {
-                                                    def sumMap = [:]
-                                                    def meanMap = [:]
+                                                    def resultMap = [:]
 
                                                     def sum = log.field('sum')[variableRid]
-                                                    sumMap.put(variableUrl, sum.getRecord().field('value'))
-
                                                     def mean = log.field('mean')[variableRid]
-                                                    meanMap.put(variableUrl, mean.getRecord().field('value'))
+
+                                                    resultMap.put("value",
+                                                            ["sum":sum.getRecord().field('value'),
+                                                             "mean":mean.getRecord().field('value')])
 
                                                     resultsSize += 1
                                                     pageIndex += 1
@@ -171,9 +171,8 @@ class SearchHelpers {
                                                     if(timestamp <= begin)
                                                         reachedLast = true
 
-                                                    results.add([sum      : sumMap,
-                                                                 mean     : meanMap,
-                                                                 timestamp: timestamp.format("yyyy-MM-dd'T'HH:mm:ssX")])
+                                                    resultMap.put('timestamp',timestamp.format("yyyy-MM-dd'T'HH:mm:ssX"))
+                                                    results.add(resultMap)
                                                 } else null
                                             } else pageIndex += 1
                                         }
