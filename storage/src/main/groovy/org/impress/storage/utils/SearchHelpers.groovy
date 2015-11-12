@@ -160,6 +160,9 @@ class SearchHelpers {
                                                     def sum = log.field('sum')[variableRid]
                                                     def mean = log.field('mean')[variableRid]
 
+                                                    if (sum == null || mean == null)
+                                                        return null
+
                                                     resultMap.put("value",
                                                             ["sum":sum.getRecord().field('value'),
                                                              "mean":mean.getRecord().field('value')])
