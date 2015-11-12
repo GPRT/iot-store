@@ -178,31 +178,12 @@ class MeasurementInterfacer extends DocumentInterfacer {
         if(granularity < GranularityValues.SAMPLES) {
             measurementPipe.sum().groupBy({ it.timestamp })
                     .collect {
-                def sumMerge = [:]
-                it.value.sum.collect {
-                    it.collect { k, v -> ["$k": v] }
-                }
-                .sum().collect {
-                    def key = (it.keySet()[0]).toString()
-                    if (sumMerge[key] == null)
-                        sumMerge[key] = 0.0
-                    sumMerge[key] += it.values()[0]
-                }
-                sumMerge
-                def meanMerge = [:]
-                it.value.mean.collect {
-                    it.collect { k, v -> ["$k": v] }
-                }
-                .sum().collect {
-                    def key = (it.keySet()[0]).toString()
-                    if (meanMerge[key] == null)
-                        meanMerge[key] = []
-                    meanMerge[key].add(it.values()[0])
-                }
-                meanMerge.each { k, v -> meanMerge[k] = mean(v) }
+                def sumResult = it.value.collect{ it.value.sum }.sum()
 
-                [sum      : sumMerge,
-                 mean     : meanMerge,
+                def meanResult = mean(it.value.collect { it.value.mean })
+
+                [sum      : sumResult,
+                 mean     : meanResult,
                  timestamp: it.key]
             }
         }
