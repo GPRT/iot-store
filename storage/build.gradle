@@ -29,3 +29,8 @@ task dropdb(type: JavaExec) {
     main = 'org.impress.storage.scripts.dropdb'
     classpath = sourceSets.main.runtimeClasspath
 }
+
+task aggregate(type: JavaExec) {
+    main = 'org.impress.storage.scripts.aggregate'
+    classpath = sourceSets.main.runtimeClasspath
+}
