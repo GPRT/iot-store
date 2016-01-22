@@ -59,33 +59,35 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
 
                 measurementVariables.collect {
                     variableName ->
-                        newAggregation.put(
-                                'sum',
+                        newAggregation['sum'].put(
+                                variableName,
                                 (lastMeasurement.field(granularity).collect {
                                     it.value.collect{
                                         it.getRecord().field('log').field('sum').getAt(variableName)
                                     }
-                                }.sum() - [null]).sum{it.field('value')}
+                                }.sum() - [null]).sum{
+                                    it.field('value')
+                                }
                         )
-                        newAggregation.put(
-                                'mean',
+                        newAggregation['mean'].put(
+                                variableName,
                                 this.mean((lastMeasurement.field(granularity).collect {
                                     it.value.collect{
                                         it.getRecord().field('log').field('mean').getAt(variableName)
                                     }
-                                }.sum() - [null]).collect{it.field('value')})
+                                }.sum() - [null]).collect{
+                                    it.field('value')
+                                })
                         )
-                }
-                measurementVariables.each{
-                    variableName ->
                         ['sum':lastLogSum,'mean':lastLogMean].each {
                             function,map ->
                                 def newSample = new ODocument('Sample')
-                                newSample.field('value', newAggregation.getAt(function))
+                                newSample.field('value', newAggregation[function][variableName])
                                 newSample.save()
                                 map.put(variableName, newSample)
                                 db.commit()
                         }
+
                 }
             }
             lastLog.field('sum',lastLogSum)
