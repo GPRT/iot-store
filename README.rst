@@ -3,7 +3,7 @@ IMPReSS IoTStore
 
 This repository contains the REST server used in the IMPReSS project (Intelligent 
 System Development Platform for Intelligent and Sustainable Society) Storage
-Module. The IoTStore will connect to a running instance of OrientDB
+Module.
 
 Dependencies
 ------------
@@ -39,7 +39,7 @@ link is mentioned above. To run the local instance, go to OrientDBs folder:
 
 You should now see the following output:
 
-.. code-block:: 
+.. code-block:: java
 
            .
           .`        `
@@ -77,8 +77,9 @@ You should now see the following output:
 For further information on the configuration and usage or OrientDB, please see
 http://orientdb.com/docs/2.0/
 
-Build and Run
--------------
+
+Build Dependencies
+------------------
 
 .. _build_and_run_content_start:
 
@@ -95,6 +96,41 @@ Use Gradle to build the dependencies for IoTStore:
     $ cd IoTStore/storage
     $ gradle build
 
+
+.. _build_and_run_content_end:
+
+Create Schema and Enable Multitenancy
+---------------------------------------
+
+As many NoSQL solutions, OrientDB is schemaless. But for optimizing performance
+IoTStore provides creation of indexes for the main classes in the IMPReSS' domain.
+IoTStore implements Gradle tasks for creating and dropping the "iot" database. This
+instance contains the model for optimal performance of IoTStore REST API.
+
+For creating an "iot" database, enter the storage folder, which contains the
+build.gradle file:
+
+.. code-block:: bash
+
+    $ cd IoTStore/storage
+    $ gradle -q createdb
+
+This may take a while. After that, proceed to buil and ultimately run IoTStore.
+If for any reason you want to drop the database use the dropdb task:
+
+.. code-block:: bash
+
+    $ gradle -q dropdb
+
+This will remove the "iot" database from local OrientDB instance. Remember, the
+IoTStore will connect to a local OrientDB instance in a "iot" database.
+
+
+Run
+---
+
+.. _run_content_start:
+
 With the dependencies built, since the IoTStore will connect to a running instance
 of OrientDB, a local IP address of the instance must be specified. The default port
 is 4567:
@@ -105,7 +141,7 @@ is 4567:
 
 The output should look like this:
 
-.. code-block:: bash
+.. code-block:: 
 
     :storage:compilUP-TO-DATE
     :storage:compileGroovy UP-TO-DATE
@@ -120,31 +156,8 @@ The output should look like this:
     [Thread-3] INFO org.eclipse.jetty.server.ServerConnector - Started ServerConnector@1d1361be{HTTP/1.1}{0.0.0.0:4567}
     > Building 80% > :storage:run
 
-*NOTE*: To use the linked data capabilities when using the direct IP address, use the
+*NOTE*: To use linked data capabilities when using the direct IP address, use the
 local network IP, not 127.0.0.1 as the example. Otherwise the you can't follow links
 on requests responses.
-    
-.. _build_and_run_content_end:
 
-
-License
--------
-
-.. _license_content_start:
-
-Copyright 2014 Lucas Lira Gomes x8lucas8x@gmail.com
-
-This library is free software; you can redistribute it and/or modify it
-under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation; either version 2.1 of the License, or (at
-your option) any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
-General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this library. If not, see http://www.gnu.org/licenses/.
-
-.. _license_content_end:
+.. _run_content_end:
