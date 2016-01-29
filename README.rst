@@ -81,7 +81,7 @@ http://orientdb.com/docs/2.0/
 Build Dependencies
 ------------------
 
-.. _build_and_run_content_start:
+.. _build_content_start:
 
 Clone the repository
 
@@ -97,10 +97,10 @@ Use Gradle to build the dependencies for IoTStore:
     $ gradle build
 
 
-.. _build_and_run_content_end:
+.. _build_content_end:
 
 Create Schema and Enable Multitenancy
----------------------------------------
+-------------------------------------
 
 As many NoSQL solutions, OrientDB is schemaless. But for optimizing performance
 IoTStore provides creation of indexes for the main classes in the IMPReSS' domain.
@@ -125,6 +125,43 @@ If for any reason you want to drop the database use the dropdb task:
 This will remove the "iot" database from local OrientDB instance. Remember, the
 IoTStore will connect to a local OrientDB instance in a "iot" database.
 
+Aggregation Mechanisms
+----------------------
+The IMPReSS Storage Module implements a hierarchical tree for organizing and
+aggregating measurements in minutes, hours, days, months and years. This aggregation
+is made through with the help of Java Hooks. These hooks work as triggers, loaded
+when the OrientDB server is started. To deploy these hooks enter the folder:
+
+.. code-block:: bash
+
+    $ cd IoTStore/hooks
+
+Build the package, generating a hooks-{version}.jar file located in IoTStore/hooks/build/libs.
+This jar has to be located in the lib folder of OrientDB, so, when started, OrientDB
+can load aggregation hooks.
+
+.. code-block:: bash
+
+    $ gradle build
+    $ cp build/libs/hooks-{version}.jar {orientDb_path}/lib
+
+To indicate OrientDB that this hook is to be loaded, add this block to the config file
+located in {orientdb_directory}/config/orientdb-server-config.xml:
+
+.. code-block:: xml
+    
+    [...]
+            <entry name="cache.size" value="10000" />
+            <entry name="storage.keepOpen" value="true" />
+        </properties>
+        <!-- ADD THIS BLOCK HERE -->
+        <hooks>
+            <hook class="org.impress.storage.MeasurementAggregationHook" position="REGULAR"/>
+        </hooks>
+        <!-- /////////////////// -->
+    </orient-server>
+
+Then proceed with initializing OrientDB as in the Dependencies section.
 
 Run
 ---
