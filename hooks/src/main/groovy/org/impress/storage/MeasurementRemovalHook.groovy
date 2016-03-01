@@ -3,6 +3,7 @@ package org.impress.storage
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.hook.ODocumentHookAbstract
 import com.orientechnologies.orient.core.hook.ORecordHook
+import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
 
 public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORecordHook {
@@ -31,19 +32,18 @@ public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORe
 
                 node.field(granularity).each {
                     key, doc ->
-                        def docRecord = doc.getRecord()
+                        ODocument docRecord = doc.getRecord()
                         if (granularity == 'sample') {
-                            docRecord.field('sample').each{
-                                variable, sample ->
-                                    sample.getRecord().delete()
-                                    db.commit()
-                            }
-                            docRecord.delete()
+                            docRecord.getRecord().delete()
                             db.commit()
                         }
                         else {
                             func(docRecord, func)
-                            docRecord.field('log').delete()
+                            ODocument log = docRecord.field('log')
+                            [log.field('sum'),log.field('mean')].each{
+                                it.each{ variable, sumOrMean -> sumOrMean.getRecord().delete() }
+                            }
+                            log.delete()
                             docRecord.delete()
                             db.commit()
                         }
