@@ -36,16 +36,21 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                 lastMeasurement.field('sample').each{
                      variable, samples ->
                          def samplesList = samples.getRecord().field('samples')
-                         def newSum = new ODocument('Sample')
-                         newSum.field('value', samplesList.sum{ it.field('value') })
+                         ODocument newSum = (!lastLogSum) ?
+                                            new ODocument('Sample') :
+                                            lastLogSum[variable]
+                         newSum.field('value', samplesList.sum { it.field('value') })
                          newSum.save()
                          db.commit()
                          lastLogSum.put(variable,newSum)
-                         def newMean = new ODocument('Sample')
+
+                         ODocument newMean = (!lastLogMean) ?
+                                                new ODocument('Sample') :
+                                                lastLogMean[variable]
                          newMean.field('value', this.mean(samplesList.collect{it.field('value')}))
                          newMean.save()
-                         lastLogMean.put(variable, newMean)
                          db.commit()
+                         lastLogMean.put(variable, newMean)
                 }
             }
             else {
@@ -81,7 +86,9 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                         )
                         ['sum':lastLogSum,'mean':lastLogMean].each {
                             function,map ->
-                                def newSample = new ODocument('Sample')
+                                ODocument newSample = (!map) ?
+                                        new ODocument('Sample') :
+                                        map[variableName]
                                 newSample.field('value', newAggregation[function][variableName])
                                 newSample.save()
                                 map.put(variableName, newSample)
