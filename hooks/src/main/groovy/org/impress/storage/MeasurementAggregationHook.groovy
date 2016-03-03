@@ -36,7 +36,7 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                 lastMeasurement.field('sample').each{
                      variable, samples ->
                          def samplesList = samples.getRecord().field('samples')
-                         ODocument newSum = (!lastLogSum) ?
+                         ODocument newSum = (!lastLogSum || !lastLogSum[variable]) ?
                                             new ODocument('Sample') :
                                             lastLogSum[variable]
                          newSum.field('value', samplesList.sum { it.field('value') })
@@ -44,7 +44,7 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                          db.commit()
                          lastLogSum.put(variable,newSum)
 
-                         ODocument newMean = (!lastLogMean) ?
+                         ODocument newMean = (!lastLogMean || !lastLogMean[variable]) ?
                                                 new ODocument('Sample') :
                                                 lastLogMean[variable]
                          newMean.field('value', this.mean(samplesList.collect{it.field('value')}))
@@ -86,7 +86,7 @@ public class MeasurementAggregationHook extends ODocumentHookAbstract implements
                         )
                         ['sum':lastLogSum,'mean':lastLogMean].each {
                             function,map ->
-                                ODocument newSample = (!map) ?
+                                ODocument newSample = (!map || !map[variableName]) ?
                                         new ODocument('Sample') :
                                         map[variableName]
                                 newSample.field('value', newAggregation[function][variableName])
