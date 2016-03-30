@@ -1,57 +1,57 @@
 import com.orientechnologies.orient.core.record.impl.ODocument
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.orientechnologies.orient.core.id.ORecordId
 
 db = new OrientGraph("remote:localhost/iot").getRawGraph()
 
 allowedUsers = [db.browseClass("OUser").find{ it.field("name") == "ufpe"},
                     db.browseClass("OUser").find{ it.field("name") == "ufpe_reader"}]
 
-class DevicePermissions {
-    public List mmntClasses
-    public List usersAllowedList
-    private ODatabaseDocumentTx db = new OrientGraph("remote:localhost/iot").getRawGraph()
+mmntClasses = ['year','month','day','hour','minute','samples']
 
-    def DevicePermissions(List allowedUsers){
-        mmntClasses = ['year','month','day','hour','minute','sample']
-        usersAllowedList = allowedUsers
-    }
+modifyAllowOfGranularity = { String className, int backwardsOffset=0 ->
 
-    def allowUsers(ODocument document){
-            def granularity = null
-            for (fieldName in document.fieldNames())
-                if (fieldName in this.mmntClasses)
-                    granularity = fieldName
+    ODocument lastOfClass = db.browseClass(className).last().toList()[0]
 
-            document.field(granularity).each {
-                key, doc ->
-                    ODocument docRecord = doc.getRecord()
-                    if (granularity == 'sample') {
-                        docRecord.field("_allow", this.usersAllowedList)
-                        docRecord.save()
-                        db.commit()
-                    } else {
-                        allowUsers(docRecord)
-                        ODocument log = docRecord.field('log')
-                        [log.field('sum'), log.field('mean')].each {
-                            it.each {
-                                variable, sumOrMean ->
-                                    ODocument rec = sumOrMean.getRecord()
-                                    rec.field("_allow", this.usersAllowedList)
-                                    rec.save()
-                            }
-                        }
-                        log.field("_allow", this.usersAllowedList)
-                        log.save()
-                        docRecord.field("_allow", this.usersAllowedList)
-                        docRecord.save()
-                        db.commit()
-                    }
+    def clusterPosition = lastOfClass.getIdentity().getClusterPosition()
+
+    def clusterId = lastOfClass.getIdentity().getClusterId() - backwardsOffset
+
+    ODocument document
+
+    while (clusterPosition > 0) {
+
+        document = db.getRecord(new ORecordId(clusterId.toInteger(),clusterPosition.toInteger()))
+        if(document) {
+            if (className == "samples"){
+                document.field("_allow", allowedUsers)
+                document.save()
+                db.commit()
             }
-            db.commit()
+            else {
+                ODocument log = document.field('log')
+                if (allowedUsers[0] in log.field("_allow")) {
+                    [log.field('sum'), log.field('mean')].each {
+                        it.each {
+                            variable, sumOrMean ->
+                                ODocument rec = sumOrMean.getRecord()
+                                rec.field("_allow", allowedUsers)
+                                rec.save()
+                        }
+                    }
+                    log.field("_allow", allowedUsers)
+                    log.save()
+                    document.field("_allow", allowedUsers)
+                    document.save()
+                    db.commit()
+                }
+            }
+        }
+        clusterPosition -= 1
     }
 }
 
-devicePermissions = new DevicePermissions(allowedUsers)
-devicePermissions.allowUsers(device.field("measurements"))
-
-device = db.browseClass("resource").toList()[37]
+mmntClasses.each{ className ->
+    println("class: " + className)
+    modifyAllowOfGranularity(className)
+}
