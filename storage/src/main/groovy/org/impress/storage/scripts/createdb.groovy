@@ -11,148 +11,192 @@ import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType
+import groovy.util.logging.Slf4j
 
-admin = new OServerAdmin('remote:localhost/iot');
-admin.connect("root", "root");
-admin.createDatabase("iot", "graph", "plocal");
-admin.close()
 
-OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/iot")
+@Slf4j
+class CreateSchema {
 
-try {
-    OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
-    ORole writer = sm.getRole("writer")
-    ORole reader = sm.getRole("reader")
+    static run() {
 
-    sm.createUser("support", "support", reader)
-    sm.createUser("test", "123", writer, reader)
-    sm.createUser("ufpe", "123", writer, reader)
-    sm.createUser("ufam", "123", writer, reader)
-    sm.createUser("fit", "123", writer, reader)
+        log.info "Creating database..."
+        def admin = new OServerAdmin('remote:localhost/iot');
+        admin.connect("root", "root");
+        admin.createDatabase("iot", "graph", "plocal");
+        admin.close()
+        log.info("Created Database [ iot ].")
 
-    OSchema schema = graph.getRawGraph().getMetadata().getSchema()
+        OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/iot")
 
-    OClass restrictedType = schema.getClass("ORestricted")
-    graph.getVertexType("V").setSuperClass(restrictedType)
-    graph.getEdgeType("E").setSuperClass(restrictedType)
+        try {
+            OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
+            ORole writer = sm.getRole("writer")
+            ORole reader = sm.getRole("reader")
 
-    OrientVertexType measurementVariableType = graph.createVertexType("MeasurementVariable")
-    measurementVariableType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
-    measurementVariableType.createProperty("unit", OType.STRING).setMandatory(true).setNotNull(true)
-    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "MeasurementVariable"))
+            sm.createUser("support", "support", reader)
+            sm.createUser("test", "123", writer, reader)
+            sm.createUser("ufpe", "123", writer, reader)
+            sm.createUser("ufam", "123", writer, reader)
+            sm.createUser("fit", "123", writer, reader)
 
-    OClass sampleType = schema.createClass("Sample", restrictedType)
-    sampleType.createProperty("value", OType.DOUBLE)
-    sampleType.createProperty("timestamp", OType.DATETIME)
+            log.info("Added roles to OUsers.")
 
-    OClass samplesType = schema.createClass("Samples", restrictedType)
-    samplesType.createProperty("variable", OType.LINK)
-    samplesType.createProperty("samples", OType.EMBEDDEDLIST, sampleType)
+            OSchema schema = graph.getRawGraph().getMetadata().getSchema()
 
-    OClass logType = schema.createClass("Log", restrictedType)
-    logType.createProperty("sum", OType.LINKMAP, sampleType)
-    logType.createProperty("mean", OType.LINKMAP, sampleType)
-    logType.createProperty("timestamp", OType.DATETIME)
+            OClass restrictedType = schema.getClass("ORestricted")
+            graph.getVertexType("V").setSuperClass(restrictedType)
+            graph.getEdgeType("E").setSuperClass(restrictedType)
 
-    OClass minuteType = schema.createClass("Minute", restrictedType)
-    minuteType.createProperty("log", OType.LINK, logType)
-    minuteType.createProperty("sample", OType.LINKMAP, samplesType)
-    minuteType.createProperty("lastMeasurement", OType.LINK, minuteType)
+            OrientVertexType measurementVariableType = graph.createVertexType("MeasurementVariable")
+            measurementVariableType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
+            measurementVariableType.createProperty("unit", OType.STRING).setMandatory(true).setNotNull(true)
+            graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "MeasurementVariable"))
 
-    OClass hourType = schema.createClass("Hour", restrictedType)
-    hourType.createProperty("log", OType.LINK, logType)
-    hourType.createProperty("minute", OType.LINKMAP, minuteType)
-    hourType.createProperty("lastMeasurement", OType.LINK, hourType)
+            log.info("Created OrientVertexType MeasurementVariable")
 
-    OClass dayType = schema.createClass("Day", restrictedType)
-    dayType.createProperty("log", OType.LINK, logType)
-    dayType.createProperty("hour", OType.LINKMAP, hourType)
-    dayType.createProperty("lastMeasurement", OType.LINK, dayType)
+            OClass sampleType = schema.createClass("Sample", restrictedType)
+            sampleType.createProperty("value", OType.DOUBLE)
+            sampleType.createProperty("timestamp", OType.DATETIME)
 
-    OClass monthType = schema.createClass("Month", restrictedType)
-    monthType.createProperty("log", OType.LINK, logType)
-    monthType.createProperty("day", OType.LINKMAP, dayType)
-    monthType.createProperty("lastMeasurement", OType.LINK, monthType)
+            log.info("Created OClass Sample")
 
-    OClass yearType = schema.createClass("Year", restrictedType)
-    yearType.createProperty("log", OType.LINK, logType)
-    yearType.createProperty("month", OType.LINKMAP, monthType)
-    yearType.createProperty("lastMeasurement", OType.LINK, yearType)
+            OClass samplesType = schema.createClass("Samples", restrictedType)
+            samplesType.createProperty("variable", OType.LINK)
+            samplesType.createProperty("samples", OType.EMBEDDEDLIST, sampleType)
 
-    OClass measurementsType = schema.createClass("Measurements", restrictedType)
-    measurementsType.createProperty("year", OType.LINKMAP, yearType)
+            log.info("Created OClass Samples")
 
-    OrientVertexType areaType = graph.createVertexType("Area")
-    areaType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
-    areaType.createProperty("domainData", OType.EMBEDDEDMAP)
-    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Area"))
+            OClass logType = schema.createClass("Log", restrictedType)
+            logType.createProperty("sum", OType.LINKMAP, sampleType)
+            logType.createProperty("mean", OType.LINKMAP, sampleType)
+            logType.createProperty("timestamp", OType.DATETIME)
+            log.info("Created OClass Log")
 
-    OrientVertexType groupType = graph.createVertexType("Group")
-    groupType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
-    groupType.createProperty("domainData", OType.EMBEDDEDMAP)
-    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Group"))
+            OClass minuteType = schema.createClass("Minute", restrictedType)
+            minuteType.createProperty("log", OType.LINK, logType)
+            minuteType.createProperty("sample", OType.LINKMAP, samplesType)
+            minuteType.createProperty("lastMeasurement", OType.LINK, minuteType)
+            log.info("Created OClass Minute")
 
-    OClass fakeResourceType = schema.createClass("FakeResource")
-    fakeResourceType.createProperty("domainData", OType.EMBEDDEDMAP)
+            OClass hourType = schema.createClass("Hour", restrictedType)
+            hourType.createProperty("log", OType.LINK, logType)
+            hourType.createProperty("minute", OType.LINKMAP, minuteType)
+            hourType.createProperty("lastMeasurement", OType.LINK, hourType)
+            log.info("Created OClass Hour")
 
-    OrientVertexType simulationType = graph.createVertexType("Simulation")
-    simulationType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
-    simulationType.createProperty("domainData", OType.EMBEDDEDMAP)
-    simulationType.createProperty("fakeAreaResources", OType.EMBEDDEDSET)
-    simulationType.createProperty("fakeGroupResources", OType.EMBEDDEDSET)
-    graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Simulation"))
+            OClass dayType = schema.createClass("Day", restrictedType)
+            dayType.createProperty("log", OType.LINK, logType)
+            dayType.createProperty("hour", OType.LINKMAP, hourType)
+            dayType.createProperty("lastMeasurement", OType.LINK, dayType)
+            log.info("Created OClass Day")
 
-    OrientVertexType resourceType = graph.createVertexType("Resource")
-    resourceType.createProperty("networkId", OType.STRING).setMandatory(true).setNotNull(true)
-    resourceType.createProperty("domainData", OType.EMBEDDEDMAP)
-    resourceType.createProperty("measurements", OType.LINK, measurementsType)
-    graph.createKeyIndex("networkId", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Resource"))
+            OClass monthType = schema.createClass("Month", restrictedType)
+            monthType.createProperty("log", OType.LINK, logType)
+            monthType.createProperty("day", OType.LINKMAP, dayType)
+            monthType.createProperty("lastMeasurement", OType.LINK, monthType)
+            log.info("Created OClass Month")
 
-    OrientEdgeType areaHasAreaType = graph.createEdgeType("HasArea")
-    areaHasAreaType.createProperty("in", OType.LINK, areaType)
-    areaHasAreaType.createProperty("out", OType.LINK, areaType)
+            OClass yearType = schema.createClass("Year", restrictedType)
+            yearType.createProperty("log", OType.LINK, logType)
+            yearType.createProperty("month", OType.LINKMAP, monthType)
+            yearType.createProperty("lastMeasurement", OType.LINK, yearType)
+            log.info("Created OClass Year")
 
-    OrientEdgeType deviceHasMeasurementsType = graph.createEdgeType("HasMeasurements")
-    deviceHasMeasurementsType.createProperty("in", OType.LINK, measurementsType)
-    deviceHasMeasurementsType.createProperty("out", OType.LINK, resourceType)
+            OClass measurementsType = schema.createClass("Measurements", restrictedType)
+            measurementsType.createProperty("year", OType.LINKMAP, yearType)
+            log.info("Created OClass Measurements")
 
-    OrientEdgeType areaHasDeviceType = graph.createEdgeType("HasResource")
-    areaHasDeviceType.createProperty("in", OType.LINK, resourceType)
-    areaHasDeviceType.createProperty("out", OType.LINK, areaType)
+            OrientVertexType areaType = graph.createVertexType("Area")
+            areaType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
+            areaType.createProperty("domainData", OType.EMBEDDEDMAP)
+            graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Area"))
+            log.info("Created OrientVertexType Area")
 
-    OrientEdgeType groupHasDeviceType = graph.createEdgeType("GroupsResource")
-    groupHasDeviceType.createProperty("in", OType.LINK, resourceType)
-    groupHasDeviceType.createProperty("out", OType.LINK, groupType)
+            OrientVertexType groupType = graph.createVertexType("Group")
+            groupType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
+            groupType.createProperty("domainData", OType.EMBEDDEDMAP)
+            graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Group"))
+            log.info("Created OrientVertexType Group")
 
-    OrientEdgeType simulationHasDeviceType = graph.createEdgeType("SimulatesResource")
-    simulationHasDeviceType.createProperty("in", OType.LINK, resourceType)
-    simulationHasDeviceType.createProperty("out", OType.LINK, simulationType)
+            OClass fakeResourceType = schema.createClass("FakeResource")
+            fakeResourceType.createProperty("domainData", OType.EMBEDDEDMAP)
+            log.info("Created OClass FakeResource")
 
-    OrientEdgeType simulationHasAreaType = graph.createEdgeType("SimulatesArea")
-    simulationHasAreaType.createProperty("in", OType.LINK, areaType)
-    simulationHasAreaType.createProperty("out", OType.LINK, simulationType)
+            OrientVertexType simulationType = graph.createVertexType("Simulation")
+            simulationType.createProperty("name", OType.STRING).setMandatory(true).setNotNull(true)
+            simulationType.createProperty("domainData", OType.EMBEDDEDMAP)
+            simulationType.createProperty("fakeAreaResources", OType.EMBEDDEDSET)
+            simulationType.createProperty("fakeGroupResources", OType.EMBEDDEDSET)
+            graph.createKeyIndex("name", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Simulation"))
+            log.info("Created OrientVertexType Simulation")
 
-    OrientEdgeType simulationHasGroupType = graph.createEdgeType("SimulatesGroup")
-    simulationHasGroupType.createProperty("in", OType.LINK, groupType)
-    simulationHasGroupType.createProperty("out", OType.LINK, simulationType)
+            OrientVertexType resourceType = graph.createVertexType("Resource")
+            resourceType.createProperty("networkId", OType.STRING).setMandatory(true).setNotNull(true)
+            resourceType.createProperty("domainData", OType.EMBEDDEDMAP)
+            resourceType.createProperty("measurements", OType.LINK, measurementsType)
+            graph.createKeyIndex("networkId", Vertex.class, new Parameter("type", "UNIQUE"), new Parameter("class", "Resource"))
+            log.info("Created OrientVertexType Resource")
 
-    OrientEdgeType simulationIncludesDeviceType = graph.createEdgeType("IncludesResource")
-    simulationIncludesDeviceType.createProperty("in", OType.LINK, resourceType)
-    simulationIncludesDeviceType.createProperty("out", OType.LINK, simulationType)
+            OrientEdgeType areaHasAreaType = graph.createEdgeType("HasArea")
+            areaHasAreaType.createProperty("in", OType.LINK, areaType)
+            areaHasAreaType.createProperty("out", OType.LINK, areaType)
+            log.info("Created OrientEdgeType HasArea")
 
-    OrientEdgeType canMonitorType = graph.createEdgeType("CanMonitor")
-    canMonitorType.createProperty("in", OType.LINK, resourceType)
-    canMonitorType.createProperty("out", OType.LINK, measurementVariableType)
+            OrientEdgeType deviceHasMeasurementsType = graph.createEdgeType("HasMeasurements")
+            deviceHasMeasurementsType.createProperty("in", OType.LINK, measurementsType)
+            deviceHasMeasurementsType.createProperty("out", OType.LINK, resourceType)
+            log.info("Created OrientEdgeType HasMeasurements")
 
-    OrientEdgeType canActuateType = graph.createEdgeType("CanActuate")
-    canActuateType.createProperty("in", OType.LINK, resourceType)
-    canActuateType.createProperty("out", OType.LINK, measurementVariableType)
+            OrientEdgeType areaHasDeviceType = graph.createEdgeType("HasResource")
+            areaHasDeviceType.createProperty("in", OType.LINK, resourceType)
+            areaHasDeviceType.createProperty("out", OType.LINK, areaType)
+            log.info("Created OrientEdgeType HasResource")
 
-    OrientEdgeType deviceCanMeasureType = graph.createEdgeType("CanMeasure")
-    deviceCanMeasureType.createProperty("in", OType.LINK, measurementVariableType)
-    deviceCanMeasureType.createProperty("out", OType.LINK, resourceType)
+            OrientEdgeType groupHasDeviceType = graph.createEdgeType("GroupsResource")
+            groupHasDeviceType.createProperty("in", OType.LINK, resourceType)
+            groupHasDeviceType.createProperty("out", OType.LINK, groupType)
+            log.info("Created OrientEdgeType GroupsResource")
 
-    graph.commit()
-} finally {
-    graph.shutdown();
+            OrientEdgeType simulationHasDeviceType = graph.createEdgeType("SimulatesResource")
+            simulationHasDeviceType.createProperty("in", OType.LINK, resourceType)
+            simulationHasDeviceType.createProperty("out", OType.LINK, simulationType)
+            log.info("Created OrientEdgeType SimulatesResource")
+
+            OrientEdgeType simulationHasAreaType = graph.createEdgeType("SimulatesArea")
+            simulationHasAreaType.createProperty("in", OType.LINK, areaType)
+            simulationHasAreaType.createProperty("out", OType.LINK, simulationType)
+            log.info("Created OrientEdgeType SimulatesArea")
+
+            OrientEdgeType simulationHasGroupType = graph.createEdgeType("SimulatesGroup")
+            simulationHasGroupType.createProperty("in", OType.LINK, groupType)
+            simulationHasGroupType.createProperty("out", OType.LINK, simulationType)
+            log.info("Created OrientEdgeType SimulatesGroup")
+
+            OrientEdgeType simulationIncludesDeviceType = graph.createEdgeType("IncludesResource")
+            simulationIncludesDeviceType.createProperty("in", OType.LINK, resourceType)
+            simulationIncludesDeviceType.createProperty("out", OType.LINK, simulationType)
+            log.info("Created OrientEdgeType IncludesResource")
+
+            OrientEdgeType canMonitorType = graph.createEdgeType("CanMonitor")
+            canMonitorType.createProperty("in", OType.LINK, resourceType)
+            canMonitorType.createProperty("out", OType.LINK, measurementVariableType)
+            log.info("Created OrientEdgeType CanMonitor")
+
+            OrientEdgeType canActuateType = graph.createEdgeType("CanActuate")
+            canActuateType.createProperty("in", OType.LINK, resourceType)
+            canActuateType.createProperty("out", OType.LINK, measurementVariableType)
+            log.info("Created OrientEdgeType CanActuate")
+
+            OrientEdgeType deviceCanMeasureType = graph.createEdgeType("CanMeasure")
+            deviceCanMeasureType.createProperty("in", OType.LINK, measurementVariableType)
+            deviceCanMeasureType.createProperty("out", OType.LINK, resourceType)
+            log.info("Created OrientEdgeType CanMeasure")
+
+            graph.commit()
+        } finally {
+            graph.shutdown();
+        }
+    }
 }
+
+CreateSchema.run()
