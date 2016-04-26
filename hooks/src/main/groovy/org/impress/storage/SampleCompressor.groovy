@@ -5,9 +5,9 @@ import com.orientechnologies.orient.core.hook.ODocumentHookAbstract
 import com.orientechnologies.orient.core.hook.ORecordHook
 import com.orientechnologies.orient.core.record.impl.ODocument
 
-public class SampleCompressionHook extends ODocumentHookAbstract implements ORecordHook {
+public class SampleCompressor extends ODocumentHookAbstract implements ORecordHook {
 
-    public SampleCompressionHook() {
+    public SampleCompressor() {
         setIncludeClasses("Month")
     }
 

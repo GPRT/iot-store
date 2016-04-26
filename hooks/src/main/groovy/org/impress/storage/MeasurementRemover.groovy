@@ -1,14 +1,16 @@
 package org.impress.storage
 
+import com.orientechnologies.orient.core.db.ODatabase
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.hook.ODocumentHookAbstract
 import com.orientechnologies.orient.core.hook.ORecordHook
 import com.orientechnologies.orient.core.id.ORecordId
+import com.orientechnologies.orient.core.record.ORecord
 import com.orientechnologies.orient.core.record.impl.ODocument
 
-public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORecordHook {
+public class MeasurementRemover extends ODocumentHookAbstract implements ORecordHook {
 
-    public MeasurementRemovalHook() {
+    public MeasurementRemover() {
         setIncludeClasses("Resource")
     }
 
@@ -18,13 +20,19 @@ public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORe
     }
 
     @Override
-    public void onRecordAfterDelete( ODocument document ) {
+    public void onRecordAfterDelete(ODocument document) {
         def db = ODatabaseRecordThreadLocal.INSTANCE.get();
         def mmntClasses = ['year','month','day','hour','minute','sample']
         ODocument root = document.field('measurements')
 
+        if (!root)
+            return
+
         def removeChildren = {
             node,func ->
+
+                if(!node) return
+
                 def granularity
                 for(fieldName in node.fieldNames())
                     if (fieldName in mmntClasses)
@@ -35,7 +43,6 @@ public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORe
                         ODocument docRecord = doc.getRecord()
                         if (granularity == 'sample') {
                             docRecord.getRecord().delete()
-                            db.commit()
                         }
                         else {
                             func(docRecord, func)
@@ -45,15 +52,11 @@ public class MeasurementRemovalHook extends ODocumentHookAbstract implements ORe
                             }
                             log.delete()
                             docRecord.delete()
-                            db.commit()
                         }
                 }
-                db.commit()
         }
 
         removeChildren(root,removeChildren)
-        document.removeField('measurements')
         root.delete()
-        db.commit()
     }
 }

@@ -156,7 +156,10 @@ located in {orientdb_directory}/config/orientdb-server-config.xml:
         </properties>
         <!-- ADD THIS BLOCK HERE -->
         <hooks>
-            <hook class="org.impress.storage.MeasurementAggregationHook" position="REGULAR"/>
+            <hook class="org.impress.storage.MeasurementAggregator" position="REGULAR"/>
+            <hook class="org.impress.storage.DeviceInitializer" position="REGULAR"/>
+            <hook class="org.impress.storage.MeasurementRemover" position="REGULAR"/>
+            <hook class="org.impress.storage.SampleCompressor" position="REGULAR"/>
         </hooks>
         <!-- /////////////////// -->
     </orient-server>
