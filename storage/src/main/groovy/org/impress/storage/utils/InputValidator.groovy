@@ -38,10 +38,19 @@ class InputValidator {
                     "You should provide your authentication as basic auth")
 
             encoded = encoded.toString().split(" ")[1]
+
         String decoded = new String(Base64.getDecoder().decode(encoded), "UTF-8")
+        List splitDecode = decoded.split(':')
+
+        if (splitDecode.size() < 2)
+            throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
+                    401,
+                    "Credentials were not provided!",
+                    "You should provide both username and password for basic auth.")
 
         String login = decoded.split(":")[0]
-        String pass =  decoded.split(":")[1]
+        String pass = decoded.split(":")[1]
+
         return [login, pass]
     }
 
