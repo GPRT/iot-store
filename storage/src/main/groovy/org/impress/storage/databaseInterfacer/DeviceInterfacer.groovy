@@ -1,6 +1,7 @@
 package org.impress.storage.databaseInterfacer
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
+import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
 import com.orientechnologies.orient.core.record.impl.ODocument
 import org.impress.storage.exceptions.ResponseErrorCode
@@ -50,6 +51,8 @@ class DeviceInterfacer extends VertexInterfacer {
                                            OrientVertex vertex,
                                            HashMap data,
                                            HashMap optionalData = [:]) {
+
+        OrientGraph graph = new OrientGraph(db)
         def areaUrl = data.area
         def groupUrls = data.groups.unique()
 
@@ -62,7 +65,7 @@ class DeviceInterfacer extends VertexInterfacer {
                             "[" + areaUrl + "] is not a valid id for an area!",
                             "Choose an id for an area instead")
 
-                area.addEdge("HasResource", vertex)
+                area.addEdge('HasResource', vertex)
             } else {
                 throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
                         404,
@@ -89,13 +92,6 @@ class DeviceInterfacer extends VertexInterfacer {
                             "The group does not exist")
                 }
             }
-        }
-
-        if (!vertex.getProperty('measurements')) {
-            ODocument measurements = new ODocument("Measurements")
-            measurements.field('year', new LinkedHashMap())
-            measurements.save()
-            vertex.setProperty('measurements', measurements.getIdentity())
         }
     }
 }
