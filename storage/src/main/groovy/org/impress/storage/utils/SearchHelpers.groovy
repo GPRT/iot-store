@@ -1,214 +1,153 @@
 package org.impress.storage.utils
 
+import com.orientechnologies.orient.core.db.record.ORecordLazyMap
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.impl.ODocument
-import org.impress.storage.utils.Granularity.GranularityValues
+import groovy.transform.CompileStatic
+import org.impress.storage.exceptions.ResponseErrorCode
+import org.impress.storage.exceptions.ResponseErrorException
+import org.impress.storage.utils.Granularity
 
 class SearchHelpers {
 
     static final Iterable<LinkedHashMap> BFSMeasurementFinder(ODocument measurements,
-                                                         Date beginTimestamp,
-                                                         Date endTimestamp,
-                                                         String granularity) {
-        def granularityValue = GranularityValues.valueOf(granularity)
-        def begin = beginTimestamp
-        def end = endTimestamp
-        def results = []
+                                                              Date beginTimestamp,
+                                                              Date endTimestamp,
+                                                              String granularity) {
 
-        def findSubSet = {
-            measurementSet, beginRange, endRange, granularityLevel, rangeSize ->
-                def range = new ArrayList<ODocument>()
-                def validateAndAdd = {
-                    setIndex, mapIndex ->
-                        if (measurementSet[setIndex].field(granularityLevel)[mapIndex])
-                            range.add(measurementSet[setIndex].field(granularityLevel)[mapIndex])
-                }
-
-                if (measurementSet.size() == 1){
-                    (beginRange..rangeSize).collect {
-                        validateAndAdd(0,it)
-                    }
-                }
-                else if (measurementSet.size() >= 2){
-                    (beginRange..rangeSize).collect {
-                        validateAndAdd(0,it)
-                    }
-                    if (measurementSet.size() > 2) {
-                        (1..measurementSet.size() - 2).collect {
-                            setIter ->
-                                (0..rangeSize).collect {
-                                    validateAndAdd(setIter,it)
-                                }
-                        }
-                    }
-                    (1..endRange).collect {
-                        validateAndAdd(measurementSet.size()-1,it)
-                    }
-                }
-                return range
-        }
-
-        def yearRange = (begin.year + 1900..end.year + 1900)
-        def yearMap = measurements.field('year')
-
-        ArrayList<ODocument> years = yearRange.collect {
-            yearMap.getAt(it)
-        } - [null]
-
-        if (years.size() >= 1) {
-            if (begin.year+1900 < yearMap.keySet()[0].toInteger())
-                begin = new Date("01/01/2000 00:00:00")
-            if (end.year+1900 < yearMap.keySet().last().toInteger())
-                end = new Date("12/31/2000 23:59:59")
-        }
-
-        if (granularityValue >= InputValidator.Granularity.MONTHS) {
-            def months = findSubSet(years, begin.month + 1, end.month + 1, 'month', 12) - [null]
-            if (granularityValue >= InputValidator.Granularity.DAYS) {
-                def days = findSubSet(months, begin.date, end.date, 'day', 31) - [null]
-                if (granularityValue >= InputValidator.Granularity.HOURS) {
-                    def hours = findSubSet(days, begin.hours, end.hours, 'hour', 23) - [null]
-                    if (granularityValue >= InputValidator.Granularity.MINUTES) {
-                        def minutes = findSubSet(hours, begin.minutes, end.minutes, 'minute', 59) - [null]
-                        if (granularityValue >= InputValidator.Granularity.SAMPLES) {
-                            minutes.each {
-                                min ->
-                                    min.field('sample').each {
-                                        results.add(it)
-                                    }
-                            }
-                        }
-                        else
-                            results = minutes
-                    } else
-                        results = hours
-                } else
-                    results = days
-            } else
-                results = months
-        } else
-            results = years
-
-        return results
+       throw new  ResponseErrorException(
+               ResponseErrorCode.NOT_IMPLEMENTED,
+               404,
+               "",
+               "This method needs to be implemented!"
+       )
     }
 
     static final Iterable<LinkedHashMap> DFSMeasurementFinder(ODocument measurements,
-                                                         Date beginTimestamp,
-                                                         Date endTimestamp,
-                                                         String granularity,
-                                                         List pageRange,
-                                                         ORecordId variableRid) {
-        def variableUrl = Endpoints.ridToUrl(variableRid).toString()
-        def granularityValue = GranularityValues.valueOf(granularity)
-        def begin = beginTimestamp
-        def end = endTimestamp
+                                                              Date beginTimestamp,
+                                                              Date endTimestamp,
+                                                              String granularity,
+                                                              List pageRange,
+                                                              ORecordId variableRid) {
+
+        def granularityValue = Granularity.valueOf(granularity)
         def results = []
         def resultsSize = 0
         def pageIndex = 0
-        def reachedFirst = false
-        def reachedLast = false
         def pageSize = pageRange[1] - pageRange[0]
-
-        def yearRange = (begin.year + 1900..end.year + 1900)
         def yearMap = measurements.field('year')
 
-        ArrayList<ODocument> years = yearRange.collect {
-            yearMap.getAt(it)
-        } - [null]
+        def granularityHierarchy = ['Year': 'Month',
+                                    'Month': 'Day',
+                                    'Day':'Hour',
+                                    'Hour':'Minute',
+                                    'Minute':'Sample']
 
-        def granularityHierarchy = ['Year':'Month','Month':'Day','Day':'Hour','Hour':'Minute','Minute':'Sample']
-        def granularityToDate = {
-            date ->
-                ['Year'  : date.year + 1900,
-                 'Month' : date.month + 1,
-                 'Day'   : date.date,
-                 'Hour'  : date.hours,
-                 'Minute': date.minutes]
-        }
+        def endDateMap = ['Year'  : endTimestamp.year + 1900,
+                          'Month' : endTimestamp.month + 1,
+                          'Day'   : endTimestamp.date,
+                          'Hour'  : endTimestamp.hours,
+                          'Minute': endTimestamp.minutes]
 
-        def granularityToEndDate = granularityToDate(end)
-        def granularityToBeginDate = granularityToDate(begin)
+        def (reachedFirst, reachedLast) = [false,false]
 
-        def findSubSet = {
-            node, lowerGranularity, func ->
-                if(resultsSize < pageSize && reachedLast == false) {
-                    def lowerGranValue = GranularityValues.valueOf((lowerGranularity + 's').toUpperCase())
-                    def measurementPipe = node.getRecord().field(lowerGranularity.toLowerCase())
-                    if (lowerGranularity != 'Sample')
-                        measurementPipe = measurementPipe.sort { a, b -> b.key.toInteger() <=> a.key.toInteger() }
+        Closure findSubSet
+        findSubSet = { node, String granularityBelow ->
+
+                if ((resultsSize < pageSize) && !reachedLast) {
+
+                    Granularity lowerGranValue = Granularity.valueOf((granularityBelow + 's').toUpperCase())
+                    def measurementPipe = node.getRecord().field(granularityBelow.toLowerCase())
+
+                    if (granularityBelow != 'Sample')
+                        measurementPipe = measurementPipe.sort { a, b ->
+                            b.key.toInteger() <=> a.key.toInteger()
+                        }
                     else
                         measurementPipe = measurementPipe[variableRid].field('samples')
 
-                    measurementPipe.each {
-                        nodeInfo ->
-                                if (lowerGranularity.toString() != 'Sample') {
+                    measurementPipe.each { nodeInfo ->
 
-                                    if ((reachedFirst == true || nodeInfo.key.toInteger() <=
-                                            granularityToEndDate[lowerGranularity]) && !reachedLast) {
-                                        def lowerRid = nodeInfo.value
-                                        def lowerNode = lowerRid.getRecord()
+                        if (granularityBelow != 'Sample') {
 
-                                        if (lowerGranValue < granularityValue)
-                                            func(lowerNode, granularityHierarchy[lowerGranularity], func)
-                                        else {
-                                            reachedFirst = true
-                                            if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
-                                                def log = lowerNode.field('log').getRecord()
-                                                if (log.field('sum')) {
-                                                    def resultMap = [:]
+                            if ((reachedFirst || nodeInfo.key.toInteger() <=
+                                    endDateMap[granularityBelow]) &&
+                                    !reachedLast) {
 
-                                                    def sum = log.field('sum')[variableRid]
-                                                    def mean = log.field('mean')[variableRid]
+                                ODocument lowerNode = nodeInfo.value.getRecord()
 
-                                                    if (sum == null || mean == null)
-                                                        return null
+                                if (lowerGranValue < granularityValue)
+                                    findSubSet(lowerNode, granularityHierarchy[granularityBelow])
+                                else {
 
-                                                    resultMap.put("value",
-                                                            ["sum":sum.getRecord().field('value'),
-                                                             "mean":mean.getRecord().field('value')])
-
-                                                    resultsSize += 1
-                                                    pageIndex += 1
-
-                                                    def timestamp = log.field('timestamp')
-                                                    if(timestamp <= begin)
-                                                        reachedLast = true
-
-                                                    resultMap.put('timestamp',timestamp.format("yyyy-MM-dd'T'HH:mm:ssX"))
-                                                    results.add(resultMap)
-                                                } else null
-                                            } else pageIndex += 1
-                                        }
-                                    }
-                                } else {
                                     reachedFirst = true
                                     if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
-                                        def sampleRecord = nodeInfo.getRecord()
-                                        def timestamp = sampleRecord.field('timestamp')
-                                        if(timestamp <= begin)
-                                            reachedLast = true
 
-                                        resultsSize += 1
-                                        pageIndex += 1
+                                        ODocument log = lowerNode.field('log').getRecord()
+                                        if (log.field('sum')) {
+                                            HashMap resultMap = [:]
 
-                                        results.add([value    : sampleRecord.field('value'),
-                                                     timestamp: timestamp.format("yyyy-MM-dd'T'HH:mm:ssX")])
+                                            ODocument sum = log.field('sum')[variableRid]
+                                            ODocument mean = log.field('mean')[variableRid]
 
+                                            if (sum == null || mean == null)
+                                                return null
 
-                                    } else pageIndex += 1
+                                            resultMap.put("value",
+                                                    ["sum": sum.field('value'),
+                                                     "mean":mean.field('value')])
+
+                                            resultsSize += 1
+                                            pageIndex += 1
+
+                                            Date timestamp = log.field('timestamp')
+                                            if(timestamp <= beginTimestamp)
+                                                reachedLast = true
+
+                                            resultMap.put('timestamp',timestamp.format("yyyy-MM-dd'T'HH:mm:ssX"))
+                                            results.add(resultMap)
+                                        }
+                                        else null
+                                    }
+                                    else pageIndex += 1
                                 }
+                            }
+                        }
+                        else {
 
+                            reachedFirst = true
+                            if (pageIndex >= pageRange[0] && pageIndex < pageRange[1]) {
+
+                                ODocument sampleRecord = nodeInfo.getRecord()
+                                Date timestamp = sampleRecord.field('timestamp')
+
+                                if (timestamp <= beginTimestamp)
+                                    reachedLast = true
+
+                                resultsSize += 1
+                                pageIndex += 1
+
+                                results.add([value    : sampleRecord.field('value'),
+                                             timestamp: timestamp.format("yyyy-MM-dd'T'HH:mm:ssX")])
+
+
+                            }
+                            else pageIndex += 1
+                        }
                     }
                 }
                 else return
         }
 
-        yearMap.collect{ index, year ->
-            if(index.toInteger() < end.year+1900)
-                end = new Date('23:59:59 12/31/'+(end.year+1900).toString())
+        yearMap.each { index, year ->
 
-            if(index.toInteger() <= end.year+1900)
-                findSubSet(year,'Month',findSubSet)
+            int endYear = endTimestamp.year+1900
+
+            if (index.toInteger() < endYear)
+                endTimestamp = new Date('23:59:59 12/31/'+(endYear).toString())
+
+            if (index.toInteger() <= endYear)
+                findSubSet(year,'Month')
         }
 
         return results

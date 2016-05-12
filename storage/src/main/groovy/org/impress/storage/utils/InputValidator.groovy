@@ -4,7 +4,7 @@ import groovy.json.JsonException
 import groovy.json.JsonSlurper
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
-import org.impress.storage.utils.Granularity.GranularityValues
+import org.impress.storage.utils.Granularity
 import javax.xml.bind.DatatypeConverter
 
 class InputValidator {
@@ -262,12 +262,12 @@ class InputValidator {
        return ['beginTimestamp':newBegin,'endTimestamp':newEnd]
    }
 
-    static Granularity.GranularityValues processGranularityParam(String granularity) {
+    static Granularity processGranularityParam(String granularity) {
         try{
             if (!granularity)
-                return GranularityValues.SAMPLES
+                return Granularity.SAMPLES
             else
-                return GranularityValues.valueOf(granularity)
+                return Granularity.valueOf(granularity)
         }
         catch (IllegalArgumentException e){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,
