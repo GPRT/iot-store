@@ -47,7 +47,7 @@ class RequestProcessor {
         res.type("application/json");
 
         String authentication = req.headers("Authorization");
-        def (login, pass) = InputValidator.processAuthentication(authentication)
+        def (String login, String pass) = InputValidator.processAuthentication(authentication)
 
         Set<String> queryFields = req.queryParams()
         Set<String> allowedQueryParams = ["fields", "filter", "sort", "expanded", "page", "pageLimit"]
