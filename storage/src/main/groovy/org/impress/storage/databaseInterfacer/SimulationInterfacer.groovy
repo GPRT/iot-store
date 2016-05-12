@@ -123,6 +123,7 @@ class SimulationInterfacer extends VertexInterfacer {
                                 "Choose an id for a device instead")
 
                     vertex.addEdge("IncludesResource", device)
+                    vertex.save()
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,
@@ -143,6 +144,7 @@ class SimulationInterfacer extends VertexInterfacer {
                                 "Choose an id for an area instead")
 
                     vertex.addEdge("SimulatesArea", area)
+                    vertex.save()
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,
@@ -163,6 +165,7 @@ class SimulationInterfacer extends VertexInterfacer {
                                 "Choose an id for a group instead")
 
                     vertex.addEdge("SimulatesGroup", group)
+                    vertex.save()
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,

@@ -52,7 +52,6 @@ class DeviceInterfacer extends VertexInterfacer {
                                            HashMap data,
                                            HashMap optionalData = [:]) {
 
-        OrientGraph graph = new OrientGraph(db)
         def areaUrl = data.area
         def groupUrls = data.groups.unique()
 
@@ -66,6 +65,7 @@ class DeviceInterfacer extends VertexInterfacer {
                             "Choose an id for an area instead")
 
                 area.addEdge('HasResource', vertex)
+                area.save()
             } else {
                 throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,
                         404,
@@ -85,6 +85,7 @@ class DeviceInterfacer extends VertexInterfacer {
                                 "Choose an id for a group instead")
 
                     group.addEdge("GroupsResource", vertex)
+                    group.save()
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.GROUP_NOT_FOUND,
                             404,

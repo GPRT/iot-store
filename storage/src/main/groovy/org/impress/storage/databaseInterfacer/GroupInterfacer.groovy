@@ -62,6 +62,7 @@ class GroupInterfacer extends VertexInterfacer {
                                 "Choose an id for a device instead")
 
                     vertex.addEdge("GroupsResource", device)
+                    vertex.save()
                 } else {
                     throw new ResponseErrorException(ResponseErrorCode.DEVICE_NOT_FOUND,
                             404,

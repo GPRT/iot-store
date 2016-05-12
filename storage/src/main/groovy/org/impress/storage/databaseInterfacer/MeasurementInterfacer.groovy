@@ -11,7 +11,7 @@ import com.orientechnologies.orient.core.id.ORecordId
 import org.impress.storage.utils.SearchHelpers
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.utils.Endpoints
-import org.impress.storage.utils.Granularity.GranularityValues
+import org.impress.storage.utils.Granularity
 
 import javax.xml.bind.DatatypeConverter
 
@@ -161,13 +161,14 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 params,optionalParams,
                 className,devices).sort { a,b -> b.timestamp <=> a.timestamp }
     }
+
     protected Iterable<LinkedHashMap> getFromDeviceCollection(ODatabaseDocumentTx db,
                                                               Map params = [:],
                                                               Map optionalParams = [:],
                                                               String className = this.className,
                                                               ArrayList devices) {
         def mean = { it.sum()/it.size() }
-        def granularity = GranularityValues.valueOf(params.granularity.toString())
+        def granularity = Granularity.valueOf(params.granularity.toString())
 
         def measurementPipe = devices.collect {
             this.get(db, params,
@@ -175,11 +176,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
                      variableId:optionalParams.variableId],
                      className)
         }
-        if(granularity < GranularityValues.SAMPLES) {
+        if(granularity < Granularity.SAMPLES) {
             measurementPipe.sum().groupBy({ it.timestamp })
                     .collect {
-                def sumResult = it.value.collect{ it.value.sum }.sum()
 
+                def sumResult = it.value.collect{ it.value.sum }.sum()
                 def meanResult = mean(it.value.collect { it.value.mean })
 
                 [value:[sum      : sumResult,
@@ -237,6 +238,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                                            Map params = [:],
                                                            Map optionalParams = [:],
                                                            String className = this.className) {
+
         OrientGraph graph = new OrientGraph(db)
         def group
         def groupId = optionalParams.id
@@ -278,6 +280,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                                    Map params = [:],
                                                    Map optionalParams = [:],
                                                    String className = this.className) {
+
         OrientGraph graph = new OrientGraph(db)
         OrientVertex parent
         def networkId = optionalParams.id
@@ -310,12 +313,13 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                           Map params = [:],
                                           Map optionalParams = [:],
                                           String className = this.className) {
+
         OrientGraph graph = new OrientGraph(db)
         OrientVertex parent
         OrientVertex variable
-        def beginTimestamp = params.beginTimestamp
-        def endTimestamp = params.endTimestamp
-        def granularity = params.granularity
+        Date beginTimestamp = params.beginTimestamp
+        Date endTimestamp = params.endTimestamp
+        String granularity = params.granularity
         def pageField = params.pageField
         def pageLimitField = params.pageLimitField
         def networkId = optionalParams.id
@@ -352,18 +356,20 @@ class MeasurementInterfacer extends DocumentInterfacer {
             }
         }
 
-        def measurements = parent.getProperty('measurements').getRecord()
-        def pageRange = [(pageLimitField*pageField),(pageLimitField*pageField)+pageLimitField]
-        def results = SearchHelpers.DFSMeasurementFinder(measurements,beginTimestamp,endTimestamp,
-                                                         granularity.toString(),pageRange,
-                                                         variable.getIdentity())
-        return results
+        ODocument measurements = parent.getProperty('measurements').getRecord()
+        List pageRange = [(pageLimitField*pageField),(pageLimitField*pageField)+pageLimitField]
+
+       return SearchHelpers.DFSMeasurementFinder(measurements,
+                                                 beginTimestamp,
+                                                 endTimestamp,
+                                                 granularity,
+                                                 pageRange,
+                                                 variable.getIdentity())
     }
 
     protected final LinkedHashMap generateDocumentProperties(ODatabaseDocumentTx db,
                                                              HashMap data,
                                                              HashMap optionalData = [:]) {
-        OrientGraph graph = new OrientGraph(db)
         def dateConverter = new DatatypeConverter()
         def timestamp = data.timestamp
         def value = data.value
@@ -415,6 +421,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                                              ODocument record,
                                              HashMap data,
                                              HashMap optionalData = [:]) {
+
         OrientGraph graph = new OrientGraph(db)
         def dateConverter = new DatatypeConverter()
         def date = dateConverter.parseDateTime(data.timestamp).getTime()
@@ -436,54 +443,68 @@ class MeasurementInterfacer extends DocumentInterfacer {
 
         def variableVertex = graph.getVertex(variableRid)
         def resourceVertices = parent.getVertices(Direction.OUT,"CanMeasure").toList()
+
         if (!(variableVertex in resourceVertices)) {
-            parent.addEdge("CanMeasure", variableVertex)
-            parent.save()
+
+            def edge = graph.addEdge(null,parent,variableVertex,"CanMeasure")
             graph.commit()
+            def parentDoc = db.getRecord(parent)
+            def resourceList = parentDoc.field("out_CanMeasure")
+            if(resourceList)
+                parentDoc.field("out_CanMeasure",resourceList+[edge])
+            else
+                parentDoc.field("out_CanMeasure",[edge])
+            parentDoc.save()
+            db.commit()
         }
 
-        def dateBuilder = {
-            granularity ->
-                def granularityValue = GranularityValues.valueOf(granularity.toUpperCase()+'S')
+        def dateBuilder = { granularity ->
+
+                def granularityValue = Granularity.valueOf(granularity.toUpperCase()+'S')
                 def newDate = new Date('01/01/01 00:00:00')
-                if (granularityValue >= GranularityValues.YEARS)
+                if (granularityValue >= Granularity.YEARS)
                     newDate.year = date.year
-                if (granularityValue >= GranularityValues.MONTHS)
+                if (granularityValue >= Granularity.MONTHS)
                     newDate.month = date.month
-                if (granularityValue >= GranularityValues.DAYS)
+                if (granularityValue >= Granularity.DAYS)
                     newDate.date = date.date
-                if (granularityValue >= GranularityValues.HOURS)
+                if (granularityValue >= Granularity.HOURS)
                     newDate.hours = date.hours
-                if (granularityValue >= GranularityValues.MINUTES)
+                if (granularityValue >= Granularity.MINUTES)
                     newDate.minutes = date.minutes
                 newDate
         }
 
-        def initiateAggregationNode = {
-            ODocument newRecord, String mapName,
-            newDataStructure, granularity ->
+        def initiateAggregationNode = { String mapName,
+                                        String granularity,
+                                        newDataStructure ->
+
                 def newLog = new ODocument('Log')
-                newLog.field('sum', new LinkedHashMap())
-                newLog.field('mean', new LinkedHashMap())
-                newLog.field('timestamp', dateBuilder(granularity))
-                newLog.save()
-                db.commit()
-                newRecord.field(mapName, newDataStructure)
-                newRecord.field('log',newLog)
-                newRecord.save()
+                        .field('sum', new LinkedHashMap())
+                        .field('mean', new LinkedHashMap())
+                        .field('timestamp', dateBuilder(granularity))
+
+                new ODocument(granularity)
+                        .field(mapName, newDataStructure)
+                        .field('log',newLog)
+                        .save()
         }
 
-        def returnValidRecord = {
-            lastRecord, currentGranularity, nextGranularity, currentDate ->
+        def returnValidRecord = { ODocument lastRecord,
+                                  String currentGranularity,
+                                  String nextGranularity,
+                                  currentDate ->
 
                 def currentMap = lastRecord.field(currentGranularity.toLowerCase())
                 def currentRecord = currentMap.getAt(currentDate)
 
                 db.begin()
                 if (currentRecord == null) {
-                    def newRecord = new ODocument(currentGranularity)
-                    initiateAggregationNode(newRecord, nextGranularity.toLowerCase(),
-                            new LinkedHashMap(), currentGranularity)
+                    ODocument newRecord = initiateAggregationNode(
+                            nextGranularity.toLowerCase(),
+                            currentGranularity,
+                            new LinkedHashMap()
+                    )
 
                     if (rightBranch.size()==0) {
                         def lastMeasurement = currentMap.sort({
@@ -500,6 +521,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                 db.commit()
                 currentRecord
         }
+
         def measurementsRecord = parent.getProperty('measurements').getRecord()
         def yearRecord = returnValidRecord(measurementsRecord,'Year','Month',date.year+1900)
         def monthRecord = returnValidRecord(yearRecord,'Month','Day',date.month+1)
@@ -509,15 +531,17 @@ class MeasurementInterfacer extends DocumentInterfacer {
         def sampleMap = minuteRecord.field('sample')
 
         if (!sampleMap[variableRid.toString()]){
+
             def variableEntry = new ODocument('Samples')
-            variableEntry.field('variable',variableRid)
-            variableEntry.field('samples',[record])
-            variableEntry.save()
+                    .field('variable',variableRid)
+                    .field('samples',[record])
+                    .save()
             db.commit()
 
             sampleMap.put(variableRid.toString(),variableEntry)
         }
         else {
+
             def samplesList = sampleMap[variableRid.toString()].field('samples')
             samplesList.add(0,record)
             sampleMap[variableRid].field('samples',samplesList)
@@ -525,6 +549,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
         }
 
         if (rightBranch.size()>0) {
+
             leftBranch = leftBranch.reverse()
             def dates = ['year','month','day','hour','minute']
             def rightDate = rightBranch.first()
@@ -547,11 +572,11 @@ class MeasurementInterfacer extends DocumentInterfacer {
                     leftMeasurement.save()
             }
         }
+
         [minuteRecord,hourRecord,
          dayRecord,monthRecord,
          yearRecord,measurementsRecord].each {
             it.save()
         }
-        db.commit()
     }
 }
