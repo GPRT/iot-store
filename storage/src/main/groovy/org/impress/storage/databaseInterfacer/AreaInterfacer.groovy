@@ -53,6 +53,7 @@ class AreaInterfacer extends VertexInterfacer {
                                            OrientVertex vertex,
                                            HashMap data,
                                            HashMap optionalData = [:]) {
+
         def parentAreaUrl = data.parentArea
 
         if (parentAreaUrl && !parentAreaUrl.isEmpty()) {
@@ -66,6 +67,7 @@ class AreaInterfacer extends VertexInterfacer {
                             "Choose an id for an area instead")
 
                 parent.addEdge("HasArea", vertex)
+                parent.save()
             }
             else {
                 throw new ResponseErrorException(ResponseErrorCode.AREA_NOT_FOUND,

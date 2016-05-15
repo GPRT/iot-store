@@ -4,7 +4,7 @@ import groovy.json.JsonException
 import groovy.json.JsonSlurper
 import org.impress.storage.exceptions.ResponseErrorCode
 import org.impress.storage.exceptions.ResponseErrorException
-import org.impress.storage.utils.Granularity.GranularityValues
+import org.impress.storage.utils.Granularity
 import javax.xml.bind.DatatypeConverter
 
 class InputValidator {
@@ -38,10 +38,19 @@ class InputValidator {
                     "You should provide your authentication as basic auth")
 
             encoded = encoded.toString().split(" ")[1]
+
         String decoded = new String(Base64.getDecoder().decode(encoded), "UTF-8")
+        List splitDecode = decoded.split(':')
+
+        if (splitDecode.size() < 2)
+            throw new ResponseErrorException(ResponseErrorCode.AUTHENTICATION_ERROR,
+                    401,
+                    "Credentials were not provided!",
+                    "You should provide both username and password for basic auth.")
 
         String login = decoded.split(":")[0]
-        String pass =  decoded.split(":")[1]
+        String pass = decoded.split(":")[1]
+
         return [login, pass]
     }
 
@@ -253,12 +262,12 @@ class InputValidator {
        return ['beginTimestamp':newBegin,'endTimestamp':newEnd]
    }
 
-    static Granularity.GranularityValues processGranularityParam(String granularity) {
+    static Granularity processGranularityParam(String granularity) {
         try{
             if (!granularity)
-                return GranularityValues.SAMPLES
+                return Granularity.SAMPLES
             else
-                return GranularityValues.valueOf(granularity)
+                return Granularity.valueOf(granularity)
         }
         catch (IllegalArgumentException e){
             throw new ResponseErrorException(ResponseErrorCode.INVALID_GRANULARITY,

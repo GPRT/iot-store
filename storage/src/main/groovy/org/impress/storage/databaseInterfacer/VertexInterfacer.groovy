@@ -4,13 +4,16 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx
 import com.orientechnologies.orient.core.exception.OValidationException
 import com.orientechnologies.orient.core.id.ORecordId
 import com.orientechnologies.orient.core.record.ORecord
+import com.orientechnologies.orient.core.sql.OCommandSQL
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx
 import com.tinkerpop.blueprints.impls.orient.OrientVertex
+import org.apache.commons.lang.ObjectUtils.Null
 import org.impress.storage.exceptions.VertexExceptionThrower
 import org.impress.storage.exceptions.ResponseErrorException
+import groovy.json.JsonBuilder
 
 abstract class VertexInterfacer extends ClassInterfacer implements VertexExceptionThrower {
 
@@ -44,27 +47,25 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         OrientGraphNoTx graph = new OrientGraphNoTx(db)
         OrientVertex vertex = null
 
-        try {
-            def properties = generateVertexProperties(db, data, optionalData)
+        def properties = generateVertexProperties(db, data, optionalData)
 
-            if (null in properties.values())
-                invalidVertexProperties()
-
-            vertex = graph.addVertex("class:" + this.className, properties)
-            generateVertexRelations(db, vertex, data, optionalData)
-            graph.commit()
-            return this.getDocumentByRid(db, vertex.getIdentity()).collect {
-                return recordToMap(db, it)
-            }
-        } catch(OValidationException e) {
+        if (null in properties.values())
             invalidVertexProperties()
-        } catch(ORecordDuplicatedException e) {
-            duplicatedVertex()
-        } catch(ResponseErrorException e) {
-            if (vertex)
-                graph.removeVertex(vertex)
 
-            throw e
+        // TODO: Check out if addVertex is fixed in Java API
+        vertex = graph.command(
+                new OCommandSQL(
+                        "create vertex " + this.className
+                        + " content " + new JsonBuilder(properties).toString()
+                )
+        ).execute()
+        //vertex = graph.addVertex("class:" + this.className, properties)
+
+        generateVertexRelations(db, vertex, data, optionalData)
+        graph.commit()
+
+        return this.getDocumentByRid(db, vertex.getIdentity()).collect {
+            return recordToMap(db, it)
         }
     }
 
@@ -77,7 +78,13 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
         if (!vertex)
             vertexNotFoundById(id)
 
-        graph.removeVertex(vertex)
+        try {
+            graph.removeVertex(vertex)
+        }
+        catch(NullPointerException e) {
+            // TODO: Vertex already removed.
+        }
+
         return [:]
     }
 
@@ -120,9 +127,11 @@ abstract class VertexInterfacer extends ClassInterfacer implements VertexExcepti
 
             for (edge in vertex.getEdges(Direction.BOTH)) {
                 graph.removeEdge(edge)
+                graph.commit()
             }
 
             generateVertexRelations(db, vertex, data)
+            db.commit()
             graph.commit()
         } catch (ORecordDuplicatedException e) {
             duplicatedVertex()

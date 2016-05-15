@@ -6,11 +6,11 @@ import com.orientechnologies.orient.core.hook.ORecordHook
 import com.orientechnologies.orient.core.record.impl.ODocument
 import java.util.Date
 
-public class MeasurementAggregationHook extends ODocumentHookAbstract implements ORecordHook {
+public class MeasurementAggregator extends ODocumentHookAbstract implements ORecordHook {
     def granularityHierarchy = ['Year':'month','Month':'day','Day':'hour','Hour':'minute']
     def mean = { it.sum()/it.size() }
 
-    public MeasurementAggregationHook() {
+    public MeasurementAggregator() {
         setIncludeClasses("Year","Month","Day","Hour","Minute")
     }
 
