@@ -1,6 +1,7 @@
 package org.impress.storage.scripts
 
 import com.orientechnologies.orient.client.remote.OServerAdmin
+import com.orientechnologies.orient.core.exception.OStorageException
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.orientechnologies.orient.core.metadata.schema.OSchema
 import com.orientechnologies.orient.core.metadata.schema.OType
@@ -19,12 +20,21 @@ class CreateSchema {
 
     static run() {
 
-        log.info "Creating database..."
-        def admin = new OServerAdmin('remote:localhost/iot');
-        admin.connect("root", "root");
-        admin.createDatabase("iot", "graph", "plocal");
-        admin.close()
-        log.info("Created Database [ iot ].")
+        def admin = new OServerAdmin('remote:localhost/iot')
+        admin.connect("root", "root")
+
+        try {
+            if (admin.existsDatabase('local'))
+                log.info('Database [ iot ] already exists.')
+        }
+        catch (OStorageException e1) {
+            admin = new OServerAdmin('remote:localhost/iot')
+            admin.connect("root", "root")
+            log.info "Creating database..."
+            admin.createDatabase("iot", "graph", "plocal")
+            admin.close()
+            log.info("Created Database [ iot ].")
+        }
 
         OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/iot")
 
@@ -217,7 +227,7 @@ class CreateSchema {
 
             graph.commit()
         } finally {
-            graph.shutdown();
+            graph.shutdown()
         }
     }
 }
