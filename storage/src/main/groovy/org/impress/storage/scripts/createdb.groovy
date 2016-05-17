@@ -43,11 +43,17 @@ class CreateSchema {
             ORole writer = sm.getRole("writer")
             ORole reader = sm.getRole("reader")
 
+            // applying old setup (pre-orient2.1) to roles
+            [writer, reader].each{ role ->
+                role.addRule('database.cluster.orole',2)
+                role.addRule('database.class.ouser',2)
+                role.addRule('database.cluster.ouser',2)
+                role.save()
+            }
+
             sm.createUser("support", "support", reader)
             sm.createUser("test", "123", writer, reader)
             sm.createUser("ufpe", "123", writer, reader)
-            sm.createUser("ufam", "123", writer, reader)
-            sm.createUser("fit", "123", writer, reader)
 
             log.info("Added roles to OUsers.")
 
