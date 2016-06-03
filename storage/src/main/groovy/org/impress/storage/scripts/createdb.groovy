@@ -18,25 +18,25 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class CreateSchema {
 
-    static run() {
+    static createSchemaInDatabase(String dbName) {
 
-        def admin = new OServerAdmin('remote:localhost/iot')
+        def admin = new OServerAdmin('remote:localhost/' + dbName)
         admin.connect("root", "root")
 
         try {
             if (admin.existsDatabase('local'))
-                log.info('Database [ iot ] already exists.')
+                log.info('Database [ ' + dbName + '] already exists.')
         }
         catch (OStorageException e1) {
-            admin = new OServerAdmin('remote:localhost/iot')
+            admin = new OServerAdmin('remote:localhost/' + dbName)
             admin.connect("root", "root")
             log.info "Creating database..."
-            admin.createDatabase("iot", "graph", "plocal")
+            admin.createDatabase(dbName, "graph", "plocal")
             admin.close()
-            log.info("Created Database [ iot ].")
+            log.info("Created Database [ " + dbName + "].")
         }
 
-        OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/iot")
+        OrientGraphNoTx graph = new OrientGraphNoTx("remote:localhost/" + dbName)
 
         try {
             OSecurity sm = graph.getRawGraph().getMetadata().getSecurity()
@@ -238,4 +238,5 @@ class CreateSchema {
     }
 }
 
-CreateSchema.run()
+CreateSchema.createSchemaInDatabase('iot')
+CreateSchema.createSchemaInDatabase('test')
