@@ -180,8 +180,8 @@ class MeasurementInterfacer extends DocumentInterfacer {
             measurementPipe.sum().groupBy({ it.timestamp })
                     .collect {
 
-                def sumResult = it.value.collect{ it.value.mean }.sum()
-                def meanResult = mean(it.value.collect { it.value.mean })
+                def sumResult = it.value.collect{ it.value.sum }.sum()
+                def meanResult = it.value.collect { it.value.mean }
 
                 [value:[sum      : sumResult,
                         mean     : meanResult],
