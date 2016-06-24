@@ -173,8 +173,8 @@ class MeasurementRequestProcessor extends RequestProcessor {
 
         try {
             return this.databaseInterfacer.getFromArea(getParams.db,
-                                                        getParams.params,
-                                                        getParams.optionalParams)
+                                                       getParams.params,
+                                                       getParams.optionalParams)
         } finally {
             getParams.db.close()
         }

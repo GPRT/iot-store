@@ -181,7 +181,7 @@ class MeasurementInterfacer extends DocumentInterfacer {
                     .collect {
 
                 def sumResult = it.value.collect{ it.value.sum }.sum()
-                def meanResult = mean(it.value.collect { it.value.mean })
+                def meanResult = it.value.collect { it.value.mean }
 
                 [value:[sum      : sumResult,
                         mean     : meanResult],
