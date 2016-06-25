@@ -10,9 +10,9 @@ Dependencies
 Packages you will need to install and deploy IoTStore:
 
 * Java 8
-* [Groovy 2.4](http://www.groovy-lang.org/download.html)
-* [Grails 2.7](http://gradle.org/)
-* [OrientDB 2.0.12](http://orientdb.com/download.php?email=unknown@unknown.com&file=orientdb-community-2.0.12.tar.gz&os=multi)
+* Groovy 2.4: http://www.groovy-lang.org/download.html
+* Gradle 2.7: http://gradle.org/
+* OrientDB 2.1.16: http://orientdb.com/download.php?email=unknown@unknown.com&file=orientdb-community-2.1.16.tar.gz&os=multi
 
 For Debian-based systems:
 
@@ -26,15 +26,15 @@ packages and its versions. With Sdkman, install groovy and gradle packages:
 
 .. code-block:: bash
 
-    $ sdk install groovy 2.4.4
+    $ sdk install groovy 2.4.6
     $ sdk install gradle 2.7
 
-To run a OrientDB instance you can download and unpack the OrientDB 2.0.12, the
+To run a OrientDB instance you can download and unpack the OrientDB 2.1.16, the
 link is mentioned above. To run the local instance, go to OrientDBs folder:
 
 .. code-block:: bash
 
-    $ cd orientdb-community-2.0.12
+    $ cd orientdb-community-2.1.16
     $ ./bin/server.sh
 
 You should now see the following output:
@@ -75,7 +75,7 @@ You should now see the following output:
 
 
 For further information on the configuration and usage or OrientDB, please see
-http://orientdb.com/docs/2.0/
+http://orientdb.com/docs/2.1/
 
 
 Build Dependencies
